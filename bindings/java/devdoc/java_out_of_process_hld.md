@@ -10,8 +10,8 @@ An out of process module should implement `IGatewayModule` interface or extend t
 
 There are two types of messages that are exchanged between the Gateway and the out of process module:
 
--  *control* messages that are used to signal `CREATE`, `START` and `DESTROY` of a module. These messages are always send from the Gateway to the module.
--  *data* messages which are send between modules via the Gateway.
+-  *control* messages that are used to signal `CREATE`, `START` and `DESTROY` of a module. These messages are always sent from the Gateway to the module.
+-  *data* messages which are sent between modules via the Gateway.
 
 
 ![](java_oop_module_hld.png)
@@ -71,12 +71,13 @@ Messages sequence
 
 ![](java_oop_messages_sequence.png)
 
-The `attach` method from GatewayModuleProxy shall be called in order to be able to start receiving messages from the Gateway. After attaching to the Gateway, `startListening` method may be called to receive messages from the Gateway. This method creates a thread that listens for incoming messages from the Gateway. If the implementer of the remote module wants to control the thread creation, it may call `receiveMessage` instead of `startListening`. `receiveMessage` shall get just one message from the Gateway, to continue receiving messages a loop must be created.
+The `attach` method from GatewayModuleProxy shall be called in order to be able to start receiving messages from the Gateway. After attaching to the Gateway, `startListening` method may be called to receive messages from the Gateway. This method creates a thread that listens for incoming messages from the Gateway. If the implementer of the remote module wants to control the thread creation, it may call `receiveMessage` instead of `startListening`. 
+`receiveMessage` is a non-blocking call, shall check for one message on each of the command and message channels. If multiple messages are queued on a channel, only the first message of each channel will be retreived, to continue receiving messages a loop must be created.
 
 The communication between the out of process module and the Gateway is done using *nanomsg* which is a socket library written in C and is going to be called from Java using JNI. 
 The `GatewayModuleProxy` abstracts the communication over *nanomsg* and the module receives the messages from the Gateway as an in-process module via `receive` method.
 
-The first message that the module should receive from the Gateway is `CREATE`. This is a blocking call that waits until `CREATE` message is received and once it received the message it calls `create` method from `IGatewayModule` implementation. 
+The first message that the module should receive from the Gateway is `CREATE`. When `CREATE` message is received `create` method from `IGatewayModule` implementation gets called. 
 
 When the module receives a `START` message from the gateway it forwards to `start` method from IGatewayModule implementation .
 

@@ -23,25 +23,16 @@ In order to make a module to run out of process, create an instance of `RemoteMo
 Also the Gateway configuration has to be changed for that specific module to set the loader as an out of process loader and set the same unique identifier. 
 
 ``` java
-interface RemoteModule {
-	public void attach();
-	public void detach();
-}
-```
-
-``` java
-public class RemoteModuleProxy implements RemoteProxy {
+public class RemoteModuleProxy {
 	private ModuleConfiguration config;
 	public RemoteModuleProxy(ModuleConfiguration config) {
 		// implementation
 	}
 
-	@Override
 	public void attach() {
 		// implementation	
 	}
 	
-	@Override
 	public void detach() {
 		// implementation	
 	}

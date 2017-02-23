@@ -5,7 +5,7 @@ import java.io.IOException;
 import com.microsoft.azure.gateway.core.Broker;
 import com.microsoft.azure.gateway.messaging.Message;
 
-class BrokerProxy extends Broker {
+public class BrokerProxy extends Broker {
 	private final static long emptyAddress = 0;
 	private CommunicationEndpoint endpoint;
 	

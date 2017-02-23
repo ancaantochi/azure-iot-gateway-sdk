@@ -4,19 +4,25 @@ import java.util.List;
 
 class CreateMessage extends RemoteMessage {
 
-	private final List<DataEndpointConfig> endpointsConfig;
-	private final String args;
-	public CreateMessage(List<DataEndpointConfig> endpointsConfig, String args) {
-		this.endpointsConfig = endpointsConfig;
-		this.args = args;
-	}
+    private final List<DataEndpointConfig> endpointsConfig;
+    private final String args;
+    private final int version;
 
-	public List<DataEndpointConfig> getDataEndpoints() {
-		return endpointsConfig;
-	}
-	
-	public String getArgs() {
-		return args;
-	}
+    public CreateMessage(List<DataEndpointConfig> endpointsConfig, String args, int version) {
+        this.endpointsConfig = endpointsConfig;
+        this.args = args;
+        this.version = version;
+    }
 
+    public List<DataEndpointConfig> getDataEndpoints() {
+        return endpointsConfig;
+    }
+
+    public String getArgs() {
+        return args;
+    }
+
+    public int getVersion() {
+        return version;
+    }
 }

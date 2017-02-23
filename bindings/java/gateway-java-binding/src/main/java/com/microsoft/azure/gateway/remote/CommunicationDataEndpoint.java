@@ -2,7 +2,7 @@ package com.microsoft.azure.gateway.remote;
 
 import java.nio.ByteBuffer;
 
-public class CommunicationDataEndpoint extends CommunicationEndpoint {
+class CommunicationDataEndpoint extends CommunicationEndpoint {
 
 	private final int type;
 

@@ -1,6 +1,6 @@
 package com.microsoft.azure.gateway.remote;
 
-public class MessageDeserializationException extends Exception {
+class MessageDeserializationException extends Exception {
 
 	private static final long serialVersionUID = 375190278270633771L;
 

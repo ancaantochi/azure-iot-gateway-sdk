@@ -29,11 +29,8 @@ class CommunicationControlEndpoint extends CommunicationEndpoint {
 		return deserializer.deserialize(messageBuffer);
 	}
 
-	public void sendCreateReply() throws ConnectionException {
-		// TODO: get version
-		int version = 1;
-		byte[] message = new MessageSerializer().serializeCreateComplete(true, version);
-		
+	public void sendCreateReply(int version) throws ConnectionException {
+		byte[] message = new MessageSerializer().serializeCreateCompleted(true, version);		
 		super.sendMessage(message);
 	}
 }

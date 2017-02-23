@@ -7,125 +7,111 @@ import java.util.List;
 
 class MessageDeserializer {
 
-	private static final byte FIRST_MESSAGE_BYTE = (byte) 0xA1; /*
-																 * 0xA1 comes
-																 * from (A)zure
-																 * (I)oT
-																 */
-	private static final byte SECOND_MESSAGE_BYTE = (byte) 0x6C; /*
-																	 * 0x6C
-																	 * comes
-																	 * from
-																	 * (G)ateway
-																	 * control
-																	 * message
-																	 */
+    // 0xA1 comes from (A)zure (I)oT
+    private static final byte FIRST_MESSAGE_BYTE = (byte) 0xA1;
+    // 0x6C comes from (G)ateway control message
+    private static final byte SECOND_MESSAGE_BYTE = (byte) 0x6C;
 
-	public RemoteMessage deserialize(ByteBuffer messageBuffer) throws MessageDeserializationException {
-		RemoteMessageType msgType = this.deserializeHeader(messageBuffer);
+    public RemoteMessage deserialize(ByteBuffer messageBuffer) throws MessageDeserializationException {
+        RemoteMessageType msgType = null;
 
-		switch (msgType) {
-		case CREATE:
-			return this.deserializeCreateMessage(messageBuffer);
-		case START:
-			return this.deserializeStartMessage(messageBuffer);
-		case DESTROY:
-			return this.deserializeDestroyMessage(messageBuffer);
-		case ERROR:
-			return this.deserializeErrorMessage(messageBuffer);
-		default:
-			return new RemoteMessage();
-		}
-	}
+        byte header1 = messageBuffer.get();
+        byte header2 = messageBuffer.get();
+        byte version = 0;
+        if (header1 == FIRST_MESSAGE_BYTE && header2 == SECOND_MESSAGE_BYTE) {
+            // TODO: check version
+            version = messageBuffer.get();
+            byte type = messageBuffer.get();
+            int totalSize = messageBuffer.getInt();
+            if (totalSize < 20) {
+                throw new MessageDeserializationException("Invalid size");
+            }
 
-	private RemoteMessageType deserializeHeader(ByteBuffer buffer) throws MessageDeserializationException {
-		RemoteMessageType msgType = null;
+            msgType = RemoteMessageType.values()[type];
+        } else {
+            throw new MessageDeserializationException("Invalid message header");
+        }
 
-		byte header1 = buffer.get();
-		byte header2 = buffer.get();
-		if (header1 == FIRST_MESSAGE_BYTE && header2 == SECOND_MESSAGE_BYTE) {
-			// TODO: check version
-			byte version = buffer.get();
-			byte type = buffer.get();
-			int totalSize = buffer.getInt();
-			if (totalSize < 20) {
-				throw new MessageDeserializationException("Invalid size");
-			}
+        switch (msgType) {
+        case CREATE:
+            return this.deserializeCreateMessage(messageBuffer, version);
+        case START:
+            return this.deserializeStartMessage(messageBuffer);
+        case DESTROY:
+            return this.deserializeDestroyMessage(messageBuffer);
+        case ERROR:
+            return this.deserializeErrorMessage(messageBuffer);
+        default:
+            return new RemoteMessage();
+        }
+    }
 
-			msgType = RemoteMessageType.values()[type];
+    private RemoteMessage deserializeCreateMessage(ByteBuffer buffer, int version)
+            throws MessageDeserializationException {
+        CreateMessage message = null;
 
-		} else {
-			throw new MessageDeserializationException("Invalid message header");
-		}
+        int uriCount = buffer.getInt();
+        List<DataEndpointConfig> endpointsConfig = new ArrayList<DataEndpointConfig>();
 
-		return msgType;
-	}
+        try {
+            for (int i = 0; i < uriCount; i++) {
+                byte uriType = buffer.get();
+                byte uriSize = buffer.get();
 
-	private RemoteMessage deserializeCreateMessage(ByteBuffer buffer) throws MessageDeserializationException {
-		CreateMessage message = null;
+                String id = readNullTerminatedString(buffer);
+                endpointsConfig.add(new DataEndpointConfig(id, uriType));
+            }
 
-		int uriCount = buffer.getInt();
-		List<DataEndpointConfig> endpointsConfig = new ArrayList<DataEndpointConfig>();
+            int argsSize = buffer.getInt();
+            String[] args = new String[argsSize];
+            for (int i = 0; i < argsSize; i++) {
+                args[i] = readNullTerminatedString(buffer);
+            }
 
-		try {
-			for (int i = 0; i < uriCount; i++) {
-				byte uriType = buffer.get();
-				byte uriSize = buffer.get();
-				
-				String id = readNullTerminatedString(buffer);
-				endpointsConfig.add(new DataEndpointConfig(id, uriType));
-			}
+            // TODO: get module args
+            message = new CreateMessage(endpointsConfig, args[0], version);
+        } catch (IOException e) {
+            throw new MessageDeserializationException(e);
+        }
 
-			int argsSize = buffer.getInt();
-			String[] args = new String[argsSize];
-			for (int i = 0; i < argsSize; i++) {
-				args[i] = readNullTerminatedString(buffer);
-			}
-			
-			// TODO: get module args
-			message = new CreateMessage(endpointsConfig, args[0]);
-		} catch (IOException e) {
-			throw new MessageDeserializationException(e);
-		}
+        return message;
+    }
 
-		return message;
-	}
+    private RemoteMessage deserializeDestroyMessage(ByteBuffer messageBuffer) {
+        return new DestroyMessage();
+    }
 
-	private RemoteMessage deserializeDestroyMessage(ByteBuffer messageBuffer) {
-		return new DestroyMessage();
-	}
+    private RemoteMessage deserializeStartMessage(ByteBuffer messageBuffer) {
+        return new StartMessage();
+    }
 
-	private RemoteMessage deserializeStartMessage(ByteBuffer messageBuffer) {
-		return new StartMessage();
-	}
+    private RemoteMessage deserializeErrorMessage(ByteBuffer messageBuffer) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
-	private RemoteMessage deserializeErrorMessage(ByteBuffer messageBuffer) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    private static String readNullTerminatedString(ByteBuffer bis) throws IOException {
+        ArrayList<Byte> byteArray = new ArrayList<Byte>();
+        byte b = bis.get();
 
-	private static String readNullTerminatedString(ByteBuffer bis) throws IOException {
-		ArrayList<Byte> byteArray = new ArrayList<Byte>();
-		byte b = bis.get();
+        while (b != '\0' && b != -1) {
+            byteArray.add(b);
+            b = bis.get();
+        }
 
-		while (b != '\0' && b != -1) {
-			byteArray.add(b);
-			b = bis.get();
-		}
+        byte[] result;
 
-		byte[] result;
+        if (b != -1) {
 
-		if (b != -1) {
+            result = new byte[byteArray.size()];
+            for (int index = 0; index < result.length; index++) {
+                result[index] = byteArray.get(index);
+            }
+        } else {
+            throw new IOException("Could not read null-terminated string.");
+        }
 
-			result = new byte[byteArray.size()];
-			for (int index = 0; index < result.length; index++) {
-				result[index] = byteArray.get(index);
-			}
-		} else {
-			throw new IOException("Could not read null-terminated string.");
-		}
-
-		return new String(result);
-	}
+        return new String(result);
+    }
 
 }

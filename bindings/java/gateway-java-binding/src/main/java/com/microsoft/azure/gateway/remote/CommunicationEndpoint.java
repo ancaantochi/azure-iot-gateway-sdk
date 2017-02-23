@@ -16,10 +16,6 @@ abstract class CommunicationEndpoint {
 		this.nano = new NanoLibrary();
 	}
 
-	protected abstract void createEndpoint() throws ConnectionException;
-
-	protected abstract int getEndpointType();
-
 	public RemoteMessage receiveMessage() throws ConnectionException, MessageDeserializationException {
 		// TODO capacity
 		int capacity = 1000;
@@ -38,9 +34,6 @@ abstract class CommunicationEndpoint {
 		return deserializeMessage(messageBuffer);
 	}
 
-	protected abstract RemoteMessage deserializeMessage(ByteBuffer messageBuffer)
-			throws MessageDeserializationException;
-
 	public void connect() throws ConnectionException {
 		createSocket();
 
@@ -56,11 +49,17 @@ abstract class CommunicationEndpoint {
 		}
 	}
 
+	protected abstract RemoteMessage deserializeMessage(ByteBuffer messageBuffer)
+			throws MessageDeserializationException;
+
+	protected abstract void createEndpoint() throws ConnectionException;
+
+	protected abstract int getEndpointType();
+
 	private void createSocket() throws ConnectionException {
 		socket = nano.nn_socket(nano.AF_SP, getEndpointType());
 		if (socket < 0) {
-			throw new ConnectionException(
-					String.format("Error in nn_socket: %s\n", nano.nn_strerror(nano.nn_errno())));
+			throw new ConnectionException(String.format("Error in nn_socket: %s\n", nano.nn_strerror(nano.nn_errno())));
 		}
 	}
 

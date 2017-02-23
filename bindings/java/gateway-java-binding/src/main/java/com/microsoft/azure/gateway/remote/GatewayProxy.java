@@ -2,75 +2,62 @@ package com.microsoft.azure.gateway.remote;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import com.microsoft.azure.gateway.core.Broker;
 import com.microsoft.azure.gateway.core.IGatewayModule;
 
-public class RemoteModuleProxy {
+public class GatewayProxy {
 
 	private static final int DEFAULT_DELAY_MS = 200;
-	private final ModuleConfiguration config;
-	private boolean isAttached;
-	private List<CommunicationEndpoint> endpoints;
-	private IGatewayModule module;
-	private ScheduledFuture<?> future;
+	private static final GatewayProxy INSTANCE = new GatewayProxy();
 
-	public RemoteModuleProxy(ModuleConfiguration configuration) {
-		if (configuration == null)
-			throw new IllegalArgumentException("Configuration can not be null.");
-
-		this.config = configuration;
-		this.endpoints = new ArrayList<CommunicationEndpoint>();
+	private GatewayProxy() {
+	}
+	
+	public static GatewayProxy getInstance() {
+		return INSTANCE;
 	}
 
-	public void attach() throws ConnectionException {
-		if (isAttached)
-			return;
-
-		CommunicationEndpoint controlEndpoint = new CommunicationControlEndpoint(this.config.getIdentifier());
+	public RemoteModule attach(ModuleConfiguration config) throws ConnectionException {
+		RemoteModuleImpl moduleProxy = new RemoteModuleImpl(config);
+		CommunicationEndpoint controlEndpoint = new CommunicationControlEndpoint(config.getIdentifier());
 		controlEndpoint.connect();
-		endpoints.add(controlEndpoint);
-		isAttached = true;
-		this.startListening();
+		moduleProxy.addEndpoint(controlEndpoint);
+		Future<?> future = this.startListening(moduleProxy, config);
+		moduleProxy.setFuture(future);
+
+		return moduleProxy;
 	}
 
-	public void detach() throws ConnectionException {
-		if (!isAttached)
-			return;
-
-		future.cancel(true);
-		for (CommunicationEndpoint endpoint : endpoints) {
-			endpoint.disconnect();
-		}
-
-		isAttached = false;
-		future = null;
+	public void detach(RemoteModuleImpl moduleProxy) {
+		moduleProxy.getFuture().cancel(true);
 	}
 
-	private void startListening() {
-		if (!isAttached)
-			throw new IllegalStateException("Please call attach before starting listening.");
-		if (future != null)
-			throw new IllegalStateException("Thread already listening");
-
-		Runnable receiveMessage = new ProxyGateway();
+	private Future<?> startListening(RemoteModuleImpl moduleProxy, ModuleConfiguration config) {
+		Runnable receiveMessage = new ReceiveMessageTask(moduleProxy);
 		int delay = config.getReceiveMessageDelay() > 0 ? config.getReceiveMessageDelay() : DEFAULT_DELAY_MS;
-		future = Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(receiveMessage, 0, delay,
+		Future<?> future = Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(receiveMessage, 0, delay,
 				TimeUnit.MICROSECONDS);
+
+		return future;
 	}
 
-	private class ProxyGateway implements Runnable {
+	private class ReceiveMessageTask implements Runnable {
+
+		private final RemoteModuleImpl moduleProxy;
+
+		public ReceiveMessageTask(RemoteModuleImpl moduleProxy) {
+			this.moduleProxy = moduleProxy;
+		}
 
 		@Override
 		public void run() {
 			try {
-
-				for (CommunicationEndpoint endpoint : endpoints) {
+				for (CommunicationEndpoint endpoint : moduleProxy.getEndpoints()) {
 					RemoteMessage message = endpoint.receiveMessage();
 					if (message != null) {
 						if (endpoint instanceof CommunicationControlEndpoint) {
@@ -81,19 +68,16 @@ public class RemoteModuleProxy {
 					}
 				}
 			} catch (ConnectionException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (ModuleInstantionException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (MessageDeserializationException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 
 		private void executeDataMessage(DataMessage dataMessage) {
-			module.receive(dataMessage.getContent());
+			moduleProxy.getGatewayModule().receive(dataMessage.getContent());
 		}
 
 		private void executeControlMessage(RemoteMessage message, CommunicationControlEndpoint endpoint)
@@ -115,54 +99,58 @@ public class RemoteModuleProxy {
 		}
 
 		private void processDestroMessage() {
-			if (module == null)
+			if (moduleProxy.getGatewayModule() == null)
 				throw new IllegalStateException("Module has to be initialized before calling destroy.");
 
 			try {
-				detach();
+				moduleProxy.getFuture().cancel(true);
+				moduleProxy.disconnectEndpoints();
 			} catch (ConnectionException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			module.destroy();
+			moduleProxy.getGatewayModule().destroy();
 		}
 
 		private void processStartMessage() {
-			if (module == null)
+			if (moduleProxy.getGatewayModule() == null)
 				throw new IllegalStateException("Module has to be initialized before calling start.");
 
-			module.start();
+			moduleProxy.getGatewayModule().start();
 		}
 
 		private void processCreateMessage(RemoteMessage message, CommunicationControlEndpoint endpoint)
 				throws ModuleInstantionException, ConnectionException {
 			CreateMessage controlMessage = (CreateMessage) message;
-			this.createModuleInstanceWithArgsConstructor(controlMessage);
+			IGatewayModule module = this.createModuleInstanceWithArgsConstructor(controlMessage);
 
 			if (module == null) {
-				this.createModuleInstanceNoArgsConstructor(controlMessage);
+				module = this.createModuleInstanceNoArgsConstructor(controlMessage);
 			}
 
 			this.createDataEndpoints(controlMessage.getDataEndpoints());
 			endpoint.sendCreateReply();
 		}
 
-		private void createModuleInstanceNoArgsConstructor(CreateMessage controlMessage)
+		private IGatewayModule createModuleInstanceNoArgsConstructor(CreateMessage controlMessage)
 				throws ModuleInstantionException {
+			IGatewayModule module = null;
 			try {
 				final int emptyAddress = 0;
-				module = config.getModuleClass().newInstance();
+				module = this.moduleProxy.getConfig().getModuleClass().newInstance();
 				module.create(emptyAddress, new BrokerProxy(), controlMessage.getArgs());
 			} catch (InstantiationException e) {
 				throw new ModuleInstantionException("Could not intantiate Gateway module", e);
 			} catch (IllegalAccessException e) {
 				throw new ModuleInstantionException("Could not intantiate Gateway module", e);
 			}
+
+			return module;
 		}
 
-		private void createModuleInstanceWithArgsConstructor(CreateMessage controlMessage)
+		private IGatewayModule createModuleInstanceWithArgsConstructor(CreateMessage controlMessage)
 				throws ModuleInstantionException {
-			Class<? extends IGatewayModule> clazz = config.getModuleClass();
+			IGatewayModule module = null;
+			Class<? extends IGatewayModule> clazz = moduleProxy.getConfig().getModuleClass();
 			final int emptyAddress = 0;
 			try {
 				Constructor<? extends IGatewayModule> ctor = clazz.getDeclaredConstructor(Long.class, Broker.class,
@@ -181,6 +169,8 @@ public class RemoteModuleProxy {
 			} catch (InvocationTargetException e) {
 				throw new ModuleInstantionException("Could not intantiate Gateway module", e);
 			}
+
+			return module;
 		}
 
 		private void createDataEndpoints(List<DataEndpointConfig> dataEndpoints) throws ConnectionException {
@@ -188,7 +178,7 @@ public class RemoteModuleProxy {
 				CommunicationEndpoint endpoint = new CommunicationDataEndpoint(endpointConfig.getId(),
 						endpointConfig.getType());
 				endpoint.connect();
-				endpoints.add(endpoint);
+				moduleProxy.addEndpoint(endpoint);
 			}
 		}
 	}

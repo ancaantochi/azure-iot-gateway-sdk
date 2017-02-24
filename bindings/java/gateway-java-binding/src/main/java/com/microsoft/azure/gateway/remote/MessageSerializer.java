@@ -21,7 +21,8 @@ class MessageSerializer {
 			dos.writeByte(SECOND_MESSAGE_BYTE);
 			dos.writeByte(version);
 			dos.writeInt(RemoteMessageType.REPLY.getValue());
-			dos.writeInt(2);
+			int totalSize = dos.size() + 5;
+            dos.writeInt(totalSize );
 
 			// Write content
 			dos.writeByte(success ? 0 : 1);

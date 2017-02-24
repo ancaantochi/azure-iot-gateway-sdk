@@ -13,28 +13,11 @@ class MessageDeserializer {
     private static final byte SECOND_MESSAGE_BYTE = (byte) 0x6C;
 
     public RemoteMessage deserialize(ByteBuffer messageBuffer) throws MessageDeserializationException {
-        RemoteMessageType msgType = null;
-
-        byte header1 = messageBuffer.get();
-        byte header2 = messageBuffer.get();
-        byte version = 0;
-        if (header1 == FIRST_MESSAGE_BYTE && header2 == SECOND_MESSAGE_BYTE) {
-            // TODO: check version
-            version = messageBuffer.get();
-            byte type = messageBuffer.get();
-            int totalSize = messageBuffer.getInt();
-            if (totalSize < 20) {
-                throw new MessageDeserializationException("Invalid size");
-            }
-
-            msgType = RemoteMessageType.values()[type];
-        } else {
-            throw new MessageDeserializationException("Invalid message header");
-        }
+        RemoteMessageType msgType = deserializeHeader(messageBuffer);
 
         switch (msgType) {
         case CREATE:
-            return this.deserializeCreateMessage(messageBuffer, version);
+            return this.deserializeCreateMessage(messageBuffer);
         case START:
             return this.deserializeStartMessage(messageBuffer);
         case DESTROY:
@@ -46,21 +29,40 @@ class MessageDeserializer {
         }
     }
 
-    private RemoteMessage deserializeCreateMessage(ByteBuffer buffer, int version)
-            throws MessageDeserializationException {
+    private RemoteMessageType deserializeHeader(ByteBuffer messageBuffer) throws MessageDeserializationException {
+        RemoteMessageType msgType = null;
+
+        byte header1 = messageBuffer.get();
+        byte header2 = messageBuffer.get();
+        if (header1 == FIRST_MESSAGE_BYTE && header2 == SECOND_MESSAGE_BYTE) {
+            // TODO: check version
+            byte version = messageBuffer.get();
+            byte type = messageBuffer.get();
+            int totalSize = messageBuffer.getInt();
+            if (totalSize < 20) {
+                throw new MessageDeserializationException("Invalid size");
+            }
+
+            msgType = RemoteMessageType.values()[type];
+        } else {
+            throw new MessageDeserializationException("Invalid message header");
+        }
+        return msgType;
+    }
+
+    private RemoteMessage deserializeCreateMessage(ByteBuffer buffer) throws MessageDeserializationException {
         CreateMessage message = null;
 
-        int uriCount = buffer.getInt();
+        int version = buffer.get();
         List<DataEndpointConfig> endpointsConfig = new ArrayList<DataEndpointConfig>();
 
         try {
-            for (int i = 0; i < uriCount; i++) {
-                byte uriType = buffer.get();
-                byte uriSize = buffer.get();
 
-                String id = readNullTerminatedString(buffer);
-                endpointsConfig.add(new DataEndpointConfig(id, uriType));
-            }
+            byte uriType = buffer.get();
+            byte uriSize = buffer.get();
+
+            String id = readNullTerminatedString(buffer);
+            endpointsConfig.add(new DataEndpointConfig(id, uriType));
 
             int argsSize = buffer.getInt();
             String[] args = new String[argsSize];

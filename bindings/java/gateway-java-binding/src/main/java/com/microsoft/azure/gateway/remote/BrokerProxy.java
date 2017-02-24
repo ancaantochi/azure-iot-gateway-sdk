@@ -7,14 +7,11 @@ import com.microsoft.azure.gateway.messaging.Message;
 
 public class BrokerProxy extends Broker {
 	private final static long emptyAddress = 0;
-	private CommunicationEndpoint endpoint;
+	private final CommunicationEndpoint endpoint;
 	
-	public BrokerProxy() {
+	public BrokerProxy(CommunicationEndpoint dataEndpoint) {
 		super(emptyAddress);
-	}
-	
-	public void setEndpoint(CommunicationEndpoint endpoint) {
-		this.endpoint = endpoint;
+		this.endpoint = dataEndpoint;
 	}
 
 	@Override

@@ -54,7 +54,6 @@ class MessageDeserializer {
         CreateMessage message = null;
 
         int version = buffer.get();
-        List<DataEndpointConfig> endpointsConfig = new ArrayList<DataEndpointConfig>();
 
         try {
 
@@ -62,7 +61,7 @@ class MessageDeserializer {
             byte uriSize = buffer.get();
 
             String id = readNullTerminatedString(buffer);
-            endpointsConfig.add(new DataEndpointConfig(id, uriType));
+            DataEndpointConfig endpointConfig = new DataEndpointConfig(id, uriType);
 
             int argsSize = buffer.getInt();
             String[] args = new String[argsSize];
@@ -71,7 +70,7 @@ class MessageDeserializer {
             }
 
             // TODO: get module args
-            message = new CreateMessage(endpointsConfig, args[0], version);
+            message = new CreateMessage(endpointConfig, args[0], version);
         } catch (IOException e) {
             throw new MessageDeserializationException(e);
         }

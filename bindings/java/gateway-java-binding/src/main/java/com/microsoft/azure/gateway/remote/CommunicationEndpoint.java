@@ -4,16 +4,23 @@ import java.nio.ByteBuffer;
 
 import org.nanomsg.NanoLibrary;
 
-abstract class CommunicationEndpoint {
+class CommunicationEndpoint {
 
-    protected final String uri;
-    protected final NanoLibrary nano;
-    protected int socket;
-    protected int endpointId;
+    private final String uri;
+    private final NanoLibrary nano;
+    private final CommunicationStrategy communicationStrategy;
+    private int socket;
+    private int endpointId;
 
-    public CommunicationEndpoint(String identifier) {
+    public CommunicationEndpoint(String identifier, CommunicationStrategy communicationStrategy) {
         this.uri = String.format("ipc:///%s.ipc", identifier);
         this.nano = new NanoLibrary();
+        this.communicationStrategy = communicationStrategy;
+    }
+    
+    public void connect() throws ConnectionException {
+        createSocket();
+        this.endpointId = this.communicationStrategy.createEndpoint(nano, this.socket, this.uri);
     }
 
     public RemoteMessage receiveMessage() throws ConnectionException, MessageDeserializationException {
@@ -30,32 +37,15 @@ abstract class CommunicationEndpoint {
             }
         }
 
-        return deserializeMessage(ByteBuffer.wrap(messageBuffer));
+        return this.communicationStrategy.deserializeMessage(ByteBuffer.wrap(messageBuffer));
     }
 
-    public void connect() throws ConnectionException {
-        createSocket();
-        createEndpoint();
+    public void disconnect() {
+        nano.nn_shutdown(socket, endpointId);
     }
-
-    public void disconnect() throws ConnectionException {
-        int result = nano.nn_shutdown(socket, endpointId);
-
-        if (result < 0) {
-            int errn = nano.nn_errno();
-            throw new ConnectionException(String.format("Error: %d - %s\n", errn, nano.nn_strerror(errn)));
-        }
-    }
-
-    protected abstract RemoteMessage deserializeMessage(ByteBuffer messageBuffer)
-            throws MessageDeserializationException;
-
-    protected abstract void createEndpoint() throws ConnectionException;
-
-    protected abstract int getEndpointType();
 
     private void createSocket() throws ConnectionException {
-        socket = nano.nn_socket(nano.AF_SP, getEndpointType());
+        socket = nano.nn_socket(nano.AF_SP, this.communicationStrategy.getEndpointType(nano));
         if (socket < 0) {
             throw new ConnectionException(String.format("Error in nn_socket: %s\n", nano.nn_strerror(nano.nn_errno())));
         }

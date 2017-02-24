@@ -32,14 +32,15 @@ public class RemoteModuleProxy {
         if (isAttached)
             return;
 
-        CommunicationEndpoint controlEndpoint = new CommunicationControlEndpoint(this.config.getIdentifier());
+        CommunicationEndpoint controlEndpoint = new CommunicationEndpoint(this.config.getIdentifier(),
+                new CommunicationControlStrategy());
         controlEndpoint.connect();
         endpoints.add(controlEndpoint);
         isAttached = true;
         this.startListening();
     }
 
-    public void detach() throws ConnectionException {
+    public void detach() {
         if (!isAttached)
             return;
 
@@ -50,6 +51,7 @@ public class RemoteModuleProxy {
 
         isAttached = false;
         future = null;
+        module = null;
     }
 
     private void startListening() {
@@ -72,10 +74,10 @@ public class RemoteModuleProxy {
                 for (CommunicationEndpoint endpoint : endpoints) {
                     RemoteMessage message = endpoint.receiveMessage();
                     if (message != null) {
-                        if (endpoint instanceof CommunicationControlEndpoint) {
-                            executeControlMessage(message, (CommunicationControlEndpoint) endpoint);
-                        } else {
+                        if (message instanceof DataMessage) {
                             executeDataMessage((DataMessage) message);
+                        } else {
+                            executeControlMessage(message, endpoint);
                         }
                     }
                 }
@@ -90,7 +92,7 @@ public class RemoteModuleProxy {
             module.receive(dataMessage.getContent());
         }
 
-        private void executeControlMessage(RemoteMessage message, CommunicationControlEndpoint endpoint)
+        private void executeControlMessage(RemoteMessage message, CommunicationEndpoint endpoint)
                 throws ConnectionException {
             if (message instanceof CreateMessage) {
                 this.processCreateMessage(message, endpoint);
@@ -112,11 +114,7 @@ public class RemoteModuleProxy {
             if (module == null)
                 throw new IllegalStateException("Module has to be initialized before calling destroy.");
 
-            try {
-                detach();
-            } catch (ConnectionException e) {
-                e.printStackTrace();
-            }
+            detach();
             module.destroy();
         }
 
@@ -127,24 +125,29 @@ public class RemoteModuleProxy {
             module.start();
         }
 
-        private void processCreateMessage(RemoteMessage message, CommunicationControlEndpoint endpoint)
+        private void processCreateMessage(RemoteMessage message, CommunicationEndpoint endpoint)
                 throws ConnectionException {
             CreateMessage controlMessage = (CreateMessage) message;
-            this.createModuleInstanceWithArgsConstructor(controlMessage);
+            CommunicationEndpoint dataEndpoint = this.createDataEndpoints(controlMessage.getDataEndpoints());
+            endpoints.add(dataEndpoint);
+
+            this.createModuleInstanceWithArgsConstructor(controlMessage, dataEndpoint);
 
             if (module == null) {
-                this.createModuleInstanceNoArgsConstructor(controlMessage);
+                this.createModuleInstanceNoArgsConstructor(controlMessage, dataEndpoint);
             }
 
-            this.createDataEndpoints(controlMessage.getDataEndpoints());
-            endpoint.sendCreateReply(controlMessage.getVersion());
+            byte[] createCompletedMessage = new MessageSerializer().serializeCreateCompleted(true,
+                    controlMessage.getVersion());
+            endpoint.sendMessage(createCompletedMessage);
         }
 
-        private void createModuleInstanceNoArgsConstructor(CreateMessage controlMessage) {
+        private void createModuleInstanceNoArgsConstructor(CreateMessage controlMessage,
+                CommunicationEndpoint dataEndpoint) {
             try {
                 final int emptyAddress = 0;
                 module = config.getModuleClass().newInstance();
-                module.create(emptyAddress, new BrokerProxy(), controlMessage.getArgs());
+                module.create(emptyAddress, new BrokerProxy(dataEndpoint), controlMessage.getArgs());
             } catch (InstantiationException e) {
                 e.printStackTrace();
             } catch (IllegalAccessException e) {
@@ -152,13 +155,14 @@ public class RemoteModuleProxy {
             }
         }
 
-        private void createModuleInstanceWithArgsConstructor(CreateMessage controlMessage) {
+        private void createModuleInstanceWithArgsConstructor(CreateMessage controlMessage,
+                CommunicationEndpoint dataEndpoint) {
             Class<? extends IGatewayModule> clazz = config.getModuleClass();
             final int emptyAddress = 0;
             try {
                 Constructor<? extends IGatewayModule> ctor = clazz.getDeclaredConstructor(Long.class, Broker.class,
                         String.class);
-                module = ctor.newInstance(emptyAddress, new BrokerProxy(), controlMessage.getArgs());
+                module = ctor.newInstance(emptyAddress, new BrokerProxy(dataEndpoint), controlMessage.getArgs());
             } catch (NoSuchMethodException e) {
                 e.printStackTrace();
             } catch (SecurityException e) {
@@ -174,13 +178,12 @@ public class RemoteModuleProxy {
             }
         }
 
-        private void createDataEndpoints(List<DataEndpointConfig> dataEndpoints) throws ConnectionException {
-            for (DataEndpointConfig endpointConfig : dataEndpoints) {
-                CommunicationEndpoint endpoint = new CommunicationDataEndpoint(endpointConfig.getId(),
-                        endpointConfig.getType());
-                endpoint.connect();
-                endpoints.add(endpoint);
-            }
+        private CommunicationEndpoint createDataEndpoints(DataEndpointConfig endpointConfig)
+                throws ConnectionException {
+            CommunicationEndpoint endpoint = new CommunicationEndpoint(endpointConfig.getId(),
+                    new CommunicationDataStrategy(endpointConfig.getType()));
+            endpoint.connect();
+            return endpoint;
         }
     }
 

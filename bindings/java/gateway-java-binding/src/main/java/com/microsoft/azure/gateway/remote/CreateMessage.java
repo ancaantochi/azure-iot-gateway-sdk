@@ -1,20 +1,18 @@
 package com.microsoft.azure.gateway.remote;
 
-import java.util.List;
-
 class CreateMessage extends RemoteMessage {
 
-    private final List<DataEndpointConfig> endpointsConfig;
+    private final DataEndpointConfig endpointsConfig;
     private final String args;
     private final int version;
 
-    public CreateMessage(List<DataEndpointConfig> endpointsConfig, String args, int version) {
+    public CreateMessage(DataEndpointConfig endpointsConfig, String args, int version) {
         this.endpointsConfig = endpointsConfig;
         this.args = args;
         this.version = version;
     }
 
-    public List<DataEndpointConfig> getDataEndpoints() {
+    public DataEndpointConfig getDataEndpoints() {
         return endpointsConfig;
     }
 

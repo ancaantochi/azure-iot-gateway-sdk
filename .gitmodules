@@ -25,3 +25,6 @@
 [submodule "deps/iot-sdk-c"]
 	path = deps/iot-sdk-c
 	url = https://github.com/Azure/azure-iot-sdk-c.git
+[submodule "deps/jnano"]
+	path = deps/jnano
+	url = https://github.com/ancaantochi/jnano

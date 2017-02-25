@@ -114,10 +114,3 @@ if(NOT EXISTS ${PROJECT_SOURCE_DIR}/deps/parson/parson.c)
         message(FATAL_ERROR "Error pulling parson submodule: ${res}")
     endif()
 endif()
-
-
-
-###############################################################################
-#############################jnano Submodule#############################
-###############################################################################
-findAndInstall(jnano 0.1.0 ${PROJECT_SOURCE_DIR}/deps/jnano ${PROJECT_SOURCE_DIR}/deps/jnano -G "${CMAKE_GENERATOR}")

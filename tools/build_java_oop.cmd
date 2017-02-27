@@ -22,27 +22,13 @@ rem ----------------------------------------------------------------------------
 rem // default build options
 set build-config=Debug
 set build-platform=Win32
-set rebuild_deps=OFF
-set CMAKE_run_unittests=OFF
-set CMAKE_run_e2e_tests=OFF
-set CMAKE_enable_dotnet_binding=OFF
-set enable-java-binding=OFF
-set enable_nodejs_binding=OFF
-set CMAKE_enable_ble_module=ON
 set use_xplat_uuid=OFF
 set dependency_install_prefix="-Ddependency_install_prefix=%local-install%"
 
 :args-loop
 if "%1" equ "" goto args-done
 if "%1" equ "--config" goto arg-build-config
-if "%1" equ "--rebuild-deps" goto arg-rebuild-deps
 if "%1" equ "--platform" goto arg-build-platform
-if "%1" equ "--run-unittests" goto arg-run-unittests
-if "%1" equ "--run-e2e-tests" goto arg-run-e2e-tests
-if "%1" equ "--enable-dotnet-binding" goto arg-enable-dotnet-binding
-if "%1" equ "--enable-java-binding" goto arg-enable-java-binding
-if "%1" equ "--enable-nodejs-binding" goto arg-enable_nodejs_binding
-if "%1" equ "--disable-ble-module" goto arg-disable_ble_module
 if "%1" equ "--system-deps-path" goto arg-system-deps-path
 if "%1" equ "--use-xplat-uuid" goto arg-use-xplat-uuid
 
@@ -58,36 +44,6 @@ goto args-continue
 shift
 if "%1" equ "" call :usage && exit /b 1
 set build-platform=%1
-goto args-continue
-
-:arg-rebuild-deps
-set rebuild_deps=ON
-goto args-continue
-
-:arg-run-unittests
-set CMAKE_run_unittests=ON
-goto args-continue
-
-:arg-run-e2e-tests
-set CMAKE_run_e2e_tests=ON
-goto args-continue
-
-:arg-enable-dotnet-binding
-set CMAKE_enable_dotnet_binding=ON
-goto args-continue
-
-:arg-enable-java-binding
-set enable-java-binding=ON
-call %current-path%\build_java.cmd
-if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
-goto args-continue
-
-:arg-disable_ble_module
-set CMAKE_enable_ble_module=OFF
-goto args-continue
-
-:arg-enable_nodejs_binding
-set enable_nodejs_binding=ON
 goto args-continue
 
 :arg-system-deps-path
@@ -109,39 +65,43 @@ rem -- build with CMAKE and run tests
 rem -----------------------------------------------------------------------------
 
 rem this is setting the cmake path in a quoted way
-set "cmake-root=%build-root%\build\jnano"
+
+set build-root=%current-path%\..\build_jnano
+set "cmake-root=%build-root%\jnano"
 
 echo Cleaning up build artifacts...
-rmdir /s/q %cmake-root%
+
+rem Clear the jnano build folder so we have a fresh build
+rmdir /s/q %build-root%
 if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 
+mkdir %build-root%
 if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 
-mkdir %cmake-root%
-if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
+pushd %build-root%
 
-cd %build-root%\deps\jnano
-echo *** Build  %build-root%\deps\jnano
+rem Clone jnano
+git clone -b develop https://github.com/ancaantochi/jnano.git
+
+popd
 
 pushd %cmake-root%
+
 if %build-platform% == x64 (
     echo ***Running CMAKE for Win64***
-        cmake -DCMAKE_BUILD_TYPE="%build-config%" -Duse_xplat_uuid:BOOL=%use_xplat_uuid% -G "Visual Studio 14 Win64" "%build-root%\deps\jnano"
+        cmake -DCMAKE_BUILD_TYPE="%build-config%" -Duse_xplat_uuid:BOOL=%use_xplat_uuid% -G "Visual Studio 14 Win64" "%cmake-root%"
         if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 ) else (
     echo ***Running CMAKE for Win32***
-        cmake -DCMAKE_BUILD_TYPE="%build-config%" -Duse_xplat_uuid:BOOL=%use_xplat_uuid% -G "Visual Studio 14" "%build-root%\deps\jnano"
+        cmake -DCMAKE_BUILD_TYPE="%build-config%" -Duse_xplat_uuid:BOOL=%use_xplat_uuid% -G "Visual Studio 14" "%cmake-root%"
         if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 )
 
 msbuild /m /p:Configuration="%build-config%" /p:Platform="%build-platform%" Project.sln
 if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 
-if "%CMAKE_run_unittests%"=="OFF" if "%CMAKE_run_e2e_tests%"=="OFF" goto skip-tests
-
-ctest -C "debug" -V
-if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
-:skip-tests
+call mvn clean install -DskipTests
+if errorlevel 1 goto :eof
 
 popd
 goto :eof
@@ -154,16 +114,7 @@ rem ----------------------------------------------------------------------------
 echo build.cmd [options]
 echo options:
 echo  --config value            Build configuration (e.g. [Debug], Release)
-echo  --disable-ble-module      Do not build the BLE module
-echo  --enable-dotnet-binding   Build .NET binding
-echo  --enable-java-binding     Build Java binding
-echo                            (JAVA_HOME must be defined in your environment)
-echo  --enable-nodejs-binding   Build Node.js binding
-echo                            (NODE_INCLUDE, NODE_LIB must be defined)
 echo  --platform value          Build platform (e.g. [Win32], x64, ...)
-echo  --rebuild-deps            Force rebuild of dependencies
-echo  --run-e2e-tests           Build/run end-to-end tests
-echo  --run-unittests           Build/run unit tests
 echo  --system-deps-path        Search for dependencies in a system-level location,
 echo                            e.g. "C:\Program Files (x86)", and install if not
 echo                            found. When this option is omitted the path is

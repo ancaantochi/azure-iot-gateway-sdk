@@ -27,6 +27,7 @@ set CMAKE_run_unittests=OFF
 set CMAKE_run_e2e_tests=OFF
 set CMAKE_enable_dotnet_binding=OFF
 set enable-java-binding=OFF
+set enable-java-remote-module=OFF
 set enable_nodejs_binding=OFF
 set CMAKE_enable_ble_module=ON
 set use_xplat_uuid=OFF
@@ -41,6 +42,7 @@ if "%1" equ "--run-unittests" goto arg-run-unittests
 if "%1" equ "--run-e2e-tests" goto arg-run-e2e-tests
 if "%1" equ "--enable-dotnet-binding" goto arg-enable-dotnet-binding
 if "%1" equ "--enable-java-binding" goto arg-enable-java-binding
+if "%1" equ "--enable-java-remote-module" goto arg-enable-java-remote-module
 if "%1" equ "--enable-nodejs-binding" goto arg-enable_nodejs_binding
 if "%1" equ "--disable-ble-module" goto arg-disable_ble_module
 if "%1" equ "--system-deps-path" goto arg-system-deps-path
@@ -80,6 +82,10 @@ goto args-continue
 set enable-java-binding=ON
 call %current-path%\build_java.cmd
 if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
+goto args-continue
+
+:arg-enable-java-remote-module
+set enable-java-remote-module=ON
 goto args-continue
 
 :arg-disable_ble_module
@@ -135,6 +141,16 @@ if %build-platform% == x64 (
 msbuild /m /p:Configuration="%build-config%" /p:Platform="%build-platform%" azure_iot_gateway_sdk.sln
 if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 
+if "%enable-java-remote-module%" == "ON" (
+   call %current-path%\build_java_oop.cmd
+   if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
+
+   if "%enable-java-binding%" == "OFF" (
+       call %current-path%\build_java.cmd
+       if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
+   )
+)
+
 if "%CMAKE_run_unittests%"=="OFF" if "%CMAKE_run_e2e_tests%"=="OFF" goto skip-tests
 
 ctest -C "debug" -V
@@ -151,21 +167,23 @@ rem ----------------------------------------------------------------------------
 :usage
 echo build.cmd [options]
 echo options:
-echo  --config value            Build configuration (e.g. [Debug], Release)
-echo  --disable-ble-module      Do not build the BLE module
-echo  --enable-dotnet-binding   Build .NET binding
-echo  --enable-java-binding     Build Java binding
-echo                            (JAVA_HOME must be defined in your environment)
-echo  --enable-nodejs-binding   Build Node.js binding
-echo                            (NODE_INCLUDE, NODE_LIB must be defined)
-echo  --platform value          Build platform (e.g. [Win32], x64, ...)
-echo  --rebuild-deps            Force rebuild of dependencies
-echo  --run-e2e-tests           Build/run end-to-end tests
-echo  --run-unittests           Build/run unit tests
-echo  --system-deps-path        Search for dependencies in a system-level location,
-echo                            e.g. "C:\Program Files (x86)", and install if not
-echo                            found. When this option is omitted the path is
-echo                            %local-install%.
-echo  --use-xplat-uuid          Use SDK's platform-independent UUID implementation
+echo  --config value               Build configuration (e.g. [Debug], Release)
+echo  --disable-ble-module         Do not build the BLE module
+echo  --enable-dotnet-binding      Build .NET binding
+echo  --enable-java-binding        Build Java binding
+echo                               (JAVA_HOME must be defined in your environment)
+echo  --enable-java-remote-module  Build Java binding
+echo                               (JAVA_HOME must be defined in your environment)
+echo  --enable-nodejs-binding      Build Node.js binding
+echo                               (NODE_INCLUDE, NODE_LIB must be defined)
+echo  --platform value             Build platform (e.g. [Win32], x64, ...)
+echo  --rebuild-deps               Force rebuild of dependencies
+echo  --run-e2e-tests              Build/run end-to-end tests
+echo  --run-unittests              Build/run unit tests
+echo  --system-deps-path           Search for dependencies in a system-level location,
+echo                               e.g. "C:\Program Files (x86)", and install if not
+echo                               found. When this option is omitted the path is
+echo                               %local-install%.
+echo  --use-xplat-uuid             Use SDK's platform-independent UUID implementation
 goto :eof
 

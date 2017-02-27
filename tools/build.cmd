@@ -172,7 +172,7 @@ echo  --disable-ble-module         Do not build the BLE module
 echo  --enable-dotnet-binding      Build .NET binding
 echo  --enable-java-binding        Build Java binding
 echo                               (JAVA_HOME must be defined in your environment)
-echo  --enable-java-remote-module  Build Java binding
+echo  --enable-java-remote-module  Build Java remote module
 echo                               (JAVA_HOME must be defined in your environment)
 echo  --enable-nodejs-binding      Build Node.js binding
 echo                               (NODE_INCLUDE, NODE_LIB must be defined)

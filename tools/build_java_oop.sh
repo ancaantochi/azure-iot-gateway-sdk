@@ -10,68 +10,21 @@ build_root=$build_root/build_jnano
 local_install=$build_root/install-deps
 log_dir=$build_root
 CORES=0
-toolchainfile=
-dependency_install_prefix="-Ddependency_install_prefix=$local_install"
-build_config=Debug
-use_xplat_uuid=OFF
 
-usage ()
-{
-    echo "build.sh [options]"
-    echo "options"
-    echo " -cl, --compileoption <val>  Specify a gcc compile option"
-    echo "   Example: -cl -O1 -cl ..."
-    echo " -f,  --config <value>       Build configuration (e.g. [Debug], Release)"
-    echo " --system-deps-path          Search for dependencies in a system-level location,"
-    echo "                             e.g. /usr/local, and install if not found. When this"
-    echo "                             option is omitted the path is $local_install."
-    echo " --toolchain-file <file>     Pass CMake a toolchain file for cross-compiling"
-    echo " --use-xplat-uuid            Use SDK's platform-independent UUID implementation"
-    echo " -x,  --xtrace               Print a trace of each command"
-    exit 1
-}
+if [ -z $dependency_install_prefix ]
+then
+    dependency_install_prefix="-Ddependency_install_prefix=$local_install"
+fi
+if [ -z $build_config ]
+then
+    build_config=Debug
+fi
+if [ -z $use_xplat_uuid ]
+then
+    use_xplat_uuid=OFF
+fi
 
-process_args ()
-{
-    save_next_arg=0
-    extracloptions=" "
-
-    for arg in $*
-    do
-      if [ $save_next_arg == 1 ]
-      then
-        # save arg to pass to gcc
-        extracloptions="$arg $extracloptions"
-        save_next_arg=0
-      elif [ $save_next_arg == 2 ]
-      then
-        # save arg to pass as toolchain file
-        toolchainfile="$arg"
-        save_next_arg=0
-      elif [ $save_next_arg == 3 ]
-      then
-        # save build configuration
-        build_config="$arg"
-        save_next_arg=0
-      else
-          case "$arg" in
-              "-x" | "--xtrace" ) set -x;;
-              "-cl" | "--compileoption" ) save_next_arg=1;;
-              "--toolchain-file" ) save_next_arg=2;;
-              "--system-deps-path" ) dependency_install_prefix=;;
-              "-f" | "--config" ) save_next_arg=3;;
-              "--use-xplat-uuid" ) use_xplat_uuid=ON;;
-              * ) usage;;
-          esac
-      fi
-    done
-
-    if [ -n "$toolchainfile" ]
-    then
-      toolchainfile=$(readlink -f $toolchainfile)
-      toolchainfile="-DCMAKE_TOOLCHAIN_FILE=$toolchainfile"
-    fi
-}
+echo $build_config
 
 get_cores ()
 {
@@ -99,11 +52,9 @@ get_cores ()
     fi
 }
 
-process_args $*
-
 get_cores
 
-# clear the Node.js build folder so we have a fresh build
+# clear the jnano build folder so we have a fresh build
 rm -rf $build_root
 mkdir -p $build_root
 
@@ -126,7 +77,7 @@ cmake $toolchainfile \
 
 make --jobs=$CORES
 
-mvn clean install
+mvn clean install -DskipTests
 [ $? -eq 0 ] || exit $?
 
 popd

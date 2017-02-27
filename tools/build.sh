@@ -13,6 +13,7 @@ run_unittests=OFF
 run_e2e_tests=OFF
 run_valgrind=0
 enable_java_binding=OFF
+enable_java_remote_module=OFF
 enable_nodejs_binding=OFF
 toolchainfile=
 enable_ble_module=ON
@@ -30,7 +31,7 @@ usage ()
     echo " --disable-ble-module              Do not build the BLE module"
     echo " --enable-java-binding             Build Java binding"
     echo "                                   (JAVA_HOME must be defined in your environment)"
-    echo " --enable-java-remote-module       Build Java binding"
+    echo " --enable-java-remote-module       Build Java remote module"
     echo "                                   (JAVA_HOME must be defined in your environment)"
     echo " --enable-nodejs-binding           Build Node.js binding"
     echo "                                   (NODE_INCLUDE, NODE_LIB must be defined)"
@@ -78,6 +79,7 @@ process_args ()
               "-cl" | "--compileoption" ) save_next_arg=1;;
               "-rv" | "--run-valgrind" ) run_valgrind=1;;
               "--enable-java-binding" ) enable_java_binding=ON;;
+              "--enable-java-remote-module" ) enable_java_remote_module=ON;;
               "--enable-nodejs-binding" ) enable_nodejs_binding=ON;;
               "--disable-ble-module" ) enable_ble_module=OFF;;
               "--toolchain-file" ) save_next_arg=2;;
@@ -156,6 +158,18 @@ cmake $toolchainfile \
       "$build_root"
 
 make --jobs=$CORES
+
+if [[ $enable_java_remote_module == ON ]]
+then
+    "$build_root"/tools/build_java_oop.sh
+    [ $? -eq 0 ] || exit $?
+    
+    if [[ $enable_java_binding == OFF ]]
+    then
+        "$build_root"/tools/build_java.sh
+        [ $? -eq 0 ] || exit $?
+    fi
+fi
 
 if [[ "$run_unittests" == "ON" || "$run_e2e_tests" == "ON" ]]
 then

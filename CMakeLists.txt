@@ -301,6 +301,10 @@ if (${enable_native_remote_modules})
     add_subdirectory(proxy)
 endif()
 
+if(${enable_java_remote_modules})
+    add_subdirectory(build_jnano/jnano)
+endif()
+
 add_subdirectory(modules)
 
 add_subdirectory(bindings)

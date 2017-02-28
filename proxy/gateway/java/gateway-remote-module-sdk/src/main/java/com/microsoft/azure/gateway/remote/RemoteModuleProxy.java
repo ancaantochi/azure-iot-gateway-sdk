@@ -15,6 +15,7 @@ public class RemoteModuleProxy {
 
     private static final int DEFAULT_DELAY_MILIS = 200;
     private final ModuleConfiguration config;
+    private final Object lock = new Object();
     private boolean isAttached;
     private List<CommunicationEndpoint> endpoints;
     private IGatewayModule module;
@@ -29,29 +30,36 @@ public class RemoteModuleProxy {
     }
 
     public void attach() throws ConnectionException {
-        if (isAttached)
-            return;
+        if (!isAttached) {
+            synchronized (lock) {
+                if (!isAttached) {
+                    CommunicationEndpoint controlEndpoint = new CommunicationEndpoint(this.config.getIdentifier(),
+                            new CommunicationControlStrategy());
+                    controlEndpoint.connect();
+                    endpoints.add(controlEndpoint);
+                    isAttached = true;
+                    this.startListening();
+                }
 
-        CommunicationEndpoint controlEndpoint = new CommunicationEndpoint(this.config.getIdentifier(),
-                new CommunicationControlStrategy());
-        controlEndpoint.connect();
-        endpoints.add(controlEndpoint);
-        isAttached = true;
-        this.startListening();
+            }
+        }
     }
 
     public void detach() {
-        if (!isAttached)
-            return;
+        if (isAttached) {
+            synchronized (lock) {
+                if (isAttached) {
+                    future.cancel(true);
+                    for (CommunicationEndpoint endpoint : endpoints) {
+                        endpoint.disconnect();
+                    }
 
-        future.cancel(true);
-        for (CommunicationEndpoint endpoint : endpoints) {
-            endpoint.disconnect();
+                    isAttached = false;
+                    future = null;
+                    module = null;
+                }
+            }
         }
-
-        isAttached = false;
-        future = null;
-        module = null;
     }
 
     private void startListening() {

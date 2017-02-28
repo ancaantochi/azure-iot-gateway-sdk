@@ -132,6 +132,18 @@ then
     [ $? -eq 0 ] || exit $?
 fi
 
+if [[ $enable_java_remote_module == ON ]]
+then
+    "$build_root"/tools/build_java_oop.sh
+    [ $? -eq 0 ] || exit $?
+    
+    if [[ $enable_java_binding == OFF ]]
+    then
+        "$build_root"/tools/build_java.sh
+        [ $? -eq 0 ] || exit $?
+    fi
+fi
+
 get_cores
 
 cd "$build_root"
@@ -149,6 +161,7 @@ cmake $toolchainfile \
       -Drun_unittests:BOOL=$run_unittests \
       -Drun_e2e_tests:BOOL=$run_e2e_tests \
       -Denable_java_binding:BOOL=$enable_java_binding \
+      -Denable_java_remote_module:BOOL=$enable_java_remote_module \
       -Denable_nodejs_binding:BOOL=$enable_nodejs_binding \
       -Denable_ble_module:BOOL=$enable_ble_module \
       -Drun_valgrind:BOOL=$run_valgrind \
@@ -158,18 +171,6 @@ cmake $toolchainfile \
       "$build_root"
 
 make --jobs=$CORES
-
-if [[ $enable_java_remote_module == ON ]]
-then
-    "$build_root"/tools/build_java_oop.sh
-    [ $? -eq 0 ] || exit $?
-    
-    if [[ $enable_java_binding == OFF ]]
-    then
-        "$build_root"/tools/build_java.sh
-        [ $? -eq 0 ] || exit $?
-    fi
-fi
 
 if [[ "$run_unittests" == "ON" || "$run_e2e_tests" == "ON" ]]
 then

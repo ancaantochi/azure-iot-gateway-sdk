@@ -287,3 +287,7 @@ add_subdirectory(modules)
 add_subdirectory(bindings)
 
 add_subdirectory(samples)
+
+if(${enable_java_remote_module})
+    add_subdirectory(build_jnano/jnano)
+endif()

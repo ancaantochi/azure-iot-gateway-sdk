@@ -86,6 +86,13 @@ goto args-continue
 
 :arg-enable-java-remote-module
 set enable-java-remote-module=ON
+call %current-path%\build_java_oop.cmd
+if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
+
+if "%enable-java-binding%" == "OFF" (
+    call %current-path%\build_java.cmd
+    if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
+)
 goto args-continue
 
 :arg-disable_ble_module
@@ -130,26 +137,16 @@ if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 pushd %cmake-root%
 if %build-platform% == x64 (
     echo ***Running CMAKE for Win64***
-        cmake %dependency_install_prefix% -DCMAKE_BUILD_TYPE="%build-config%" -Drun_unittests:BOOL=%CMAKE_run_unittests% -Drun_e2e_tests:BOOL=%CMAKE_run_e2e_tests% -Denable_dotnet_binding:BOOL=%CMAKE_enable_dotnet_binding% -Denable_java_binding:BOOL=%enable-java-binding% -Denable_nodejs_binding:BOOL=%enable_nodejs_binding% -Denable_ble_module:BOOL=%CMAKE_enable_ble_module% -Drebuild_deps:BOOL=%rebuild_deps% -Duse_xplat_uuid:BOOL=%use_xplat_uuid% -G "Visual Studio 14 Win64" "%build-root%"
+        cmake %dependency_install_prefix% -DCMAKE_BUILD_TYPE="%build-config%" -Drun_unittests:BOOL=%CMAKE_run_unittests% -Drun_e2e_tests:BOOL=%CMAKE_run_e2e_tests% -Denable_dotnet_binding:BOOL=%CMAKE_enable_dotnet_binding% -Denable_java_binding:BOOL=%enable-java-binding% -Denable_java_remote_module:BOOL=%enable-java-remote-module% -Denable_nodejs_binding:BOOL=%enable_nodejs_binding% -Denable_ble_module:BOOL=%CMAKE_enable_ble_module% -Drebuild_deps:BOOL=%rebuild_deps% -Duse_xplat_uuid:BOOL=%use_xplat_uuid% -G "Visual Studio 14 Win64" "%build-root%"
         if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 ) else (
     echo ***Running CMAKE for Win32***
-        cmake %dependency_install_prefix% -DCMAKE_BUILD_TYPE="%build-config%" -Drun_unittests:BOOL=%CMAKE_run_unittests% -Drun_e2e_tests:BOOL=%CMAKE_run_e2e_tests% -Denable_dotnet_binding:BOOL=%CMAKE_enable_dotnet_binding% -Denable_java_binding:BOOL=%enable-java-binding% -Denable_nodejs_binding:BOOL=%enable_nodejs_binding% -Denable_ble_module:BOOL=%CMAKE_enable_ble_module% -Drebuild_deps:BOOL=%rebuild_deps% -Duse_xplat_uuid:BOOL=%use_xplat_uuid% -G "Visual Studio 14" "%build-root%"
+        cmake %dependency_install_prefix% -DCMAKE_BUILD_TYPE="%build-config%" -Drun_unittests:BOOL=%CMAKE_run_unittests% -Drun_e2e_tests:BOOL=%CMAKE_run_e2e_tests% -Denable_dotnet_binding:BOOL=%CMAKE_enable_dotnet_binding% -Denable_java_binding:BOOL=%enable-java-binding% -Denable_java_remote_module:BOOL=%enable-java-remote-module% -Denable_nodejs_binding:BOOL=%enable_nodejs_binding% -Denable_ble_module:BOOL=%CMAKE_enable_ble_module% -Drebuild_deps:BOOL=%rebuild_deps% -Duse_xplat_uuid:BOOL=%use_xplat_uuid% -G "Visual Studio 14" "%build-root%"
         if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 )
 
 msbuild /m /p:Configuration="%build-config%" /p:Platform="%build-platform%" azure_iot_gateway_sdk.sln
 if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
-
-if "%enable-java-remote-module%" == "ON" (
-   call %current-path%\build_java_oop.cmd
-   if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
-
-   if "%enable-java-binding%" == "OFF" (
-       call %current-path%\build_java.cmd
-       if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
-   )
-)
 
 if "%CMAKE_run_unittests%"=="OFF" if "%CMAKE_run_e2e_tests%"=="OFF" goto skip-tests
 
@@ -158,6 +155,16 @@ if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 :skip-tests
 
 popd
+
+REM set cmake-jnano-root= %build-root%\build_jnano\jnano
+REM pushd %cmake-jnano-root%
+REM if "%enable-java-remote-module%" == "ON" (
+REM    echo ***** Current %cd%
+REM    msbuild /m /p:Configuration="%build-config%" /p:Platform="%build-platform%" Project.sln
+REM    if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
+REM )
+REM popd
+
 goto :eof
 
 rem -----------------------------------------------------------------------------

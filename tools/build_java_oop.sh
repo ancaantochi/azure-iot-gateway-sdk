@@ -22,7 +22,7 @@ mvn clean install -DskipTests
 popd
 
 # -- Java Remote Module SDK --
-pushd $build_root/proxy/gateway/java/gateway-remote-module-sdk
+pushd $build_root/../proxy/gateway/java/gateway-remote-module-sdk
 mvn clean install
 [ $? -eq 0 ] || exit $?
 popd

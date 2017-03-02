@@ -1,8 +1,10 @@
+/*
+ * Copyright (c) Microsoft. All rights reserved.
+ * Licensed under the MIT license. See LICENSE file in the project root for full license information.
+ */
 package com.microsoft.azure.gateway.remote;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 
 class MessageDeserializer {
 
@@ -10,13 +12,41 @@ class MessageDeserializer {
     private static final byte FIRST_MESSAGE_BYTE = (byte) 0xA1;
     // 0x6C comes from (G)ateway control message
     private static final byte SECOND_MESSAGE_BYTE = (byte) 0x6C;
+    private static final byte BASE_MESSAGE_SIZE = 8;
+    private static final byte BASE_CREATE_SIZE = BASE_MESSAGE_SIZE + 10;
 
     public RemoteMessage deserialize(ByteBuffer messageBuffer) throws MessageDeserializationException {
-        RemoteMessageType msgType = deserializeHeader(messageBuffer);
+        RemoteMessageType msgType = null;
+        int totalSize = 0;
+
+        byte header1 = messageBuffer.get();
+        byte header2 = messageBuffer.get();
+        if (header1 == FIRST_MESSAGE_BYTE && header2 == SECOND_MESSAGE_BYTE) {
+            // TODO: check version
+            byte version = messageBuffer.get();
+            byte type = messageBuffer.get();
+            totalSize = messageBuffer.getInt();
+
+            if (totalSize < BASE_MESSAGE_SIZE) {
+                throw new MessageDeserializationException(
+                        String.format("Message size %s should be >= %s", totalSize, BASE_MESSAGE_SIZE));
+            }
+
+            if (totalSize != messageBuffer.limit())
+                throw new MessageDeserializationException(
+                        String.format("Message size in header %s is different that actual size %s", totalSize,
+                                messageBuffer.limit()));
+
+            msgType = RemoteMessageType.fromValue(type);
+            if (msgType == null)
+                throw new MessageDeserializationException("Invalid message type.");
+        } else {
+            throw new MessageDeserializationException("Invalid message header.");
+        }
 
         switch (msgType) {
         case CREATE:
-            return this.deserializeCreateMessage(messageBuffer);
+            return this.deserializeCreateMessage(messageBuffer, totalSize);
         case START:
             return this.deserializeStartMessage(messageBuffer);
         case DESTROY:
@@ -28,51 +58,25 @@ class MessageDeserializer {
         }
     }
 
-    private RemoteMessageType deserializeHeader(ByteBuffer messageBuffer) throws MessageDeserializationException {
-        RemoteMessageType msgType = null;
+    private RemoteMessage deserializeCreateMessage(ByteBuffer buffer, int totalSize)
+            throws MessageDeserializationException {
+        if (totalSize < BASE_CREATE_SIZE)
+            throw new MessageDeserializationException(
+                    String.format("Create message size %s should be >= %s", totalSize, BASE_CREATE_SIZE));
 
-        byte header1 = messageBuffer.get();
-        byte header2 = messageBuffer.get();
-        if (header1 == FIRST_MESSAGE_BYTE && header2 == SECOND_MESSAGE_BYTE) {
-            // TODO: check version
-            byte version = messageBuffer.get();
-            byte type = messageBuffer.get();
-            int totalSize = messageBuffer.getInt();
-            if (totalSize < 20) {
-                throw new MessageDeserializationException("Invalid size");
-            }
-
-            msgType = RemoteMessageType.values()[type];
-        } else {
-            throw new MessageDeserializationException("Invalid message header");
-        }
-        return msgType;
-    }
-
-    private RemoteMessage deserializeCreateMessage(ByteBuffer buffer) throws MessageDeserializationException {
         CreateMessage message = null;
-
         int version = buffer.get();
 
-        try {
+        byte uriType = buffer.get();
+        int uriSize = buffer.getInt();
 
-            byte uriType = buffer.get();
-            byte uriSize = buffer.get();
+        String id = readNullTerminatedString(buffer, uriSize);
+        DataEndpointConfig endpointConfig = new DataEndpointConfig(id, uriType);
 
-            String id = readNullTerminatedString(buffer);
-            DataEndpointConfig endpointConfig = new DataEndpointConfig(id, uriType);
+        int argsSize = buffer.getInt();
+        String moduleArgs = readNullTerminatedString(buffer, argsSize);
 
-            int argsSize = buffer.getInt();
-            String[] args = new String[argsSize];
-            for (int i = 0; i < argsSize; i++) {
-                args[i] = readNullTerminatedString(buffer);
-            }
-
-            // TODO: get module args
-            message = new CreateMessage(endpointConfig, args[0], version);
-        } catch (IOException e) {
-            throw new MessageDeserializationException(e);
-        }
+        message = new CreateMessage(endpointConfig, moduleArgs, version);
 
         return message;
     }
@@ -90,26 +94,19 @@ class MessageDeserializer {
         return null;
     }
 
-    private static String readNullTerminatedString(ByteBuffer bis) throws IOException {
-        ArrayList<Byte> byteArray = new ArrayList<Byte>();
+    private static String readNullTerminatedString(ByteBuffer bis, int size) throws MessageDeserializationException {
+        byte[] result = new byte[size - 1];
+        int index = 0;
         byte b = bis.get();
 
-        while (b != '\0' && b != -1) {
-            byteArray.add(b);
+        while (b != '\0' && b != -1 && index < size) {
+            result[index] = b;
+            index++;
             b = bis.get();
         }
 
-        byte[] result;
-
-        if (b != -1) {
-
-            result = new byte[byteArray.size()];
-            for (int index = 0; index < result.length; index++) {
-                result[index] = byteArray.get(index);
-            }
-        } else {
-            throw new IOException("Could not read null-terminated string.");
-        }
+        if (b != '\0' || index != size - 1)
+            throw new MessageDeserializationException("Module args can not be read.");
 
         return new String(result);
     }

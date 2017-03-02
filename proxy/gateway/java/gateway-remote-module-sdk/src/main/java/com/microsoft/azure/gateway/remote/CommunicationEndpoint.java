@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) Microsoft. All rights reserved.
+ * Licensed under the MIT license. See LICENSE file in the project root for full license information.
+ */
 package com.microsoft.azure.gateway.remote;
 
 import java.nio.ByteBuffer;
@@ -13,19 +17,19 @@ class CommunicationEndpoint {
     private int endpointId;
 
     public CommunicationEndpoint(String identifier, CommunicationStrategy communicationStrategy) {
-        this.uri = String.format("ipc:///%s.ipc", identifier);
-        this.nano = new NanoLibrary();
         this.communicationStrategy = communicationStrategy;
+        this.nano = new NanoLibrary();
+        this.uri = communicationStrategy.getEndpointUri(identifier);
     }
-    
+
     public void connect() throws ConnectionException {
-        createSocket();
-        this.endpointId = this.communicationStrategy.createEndpoint(nano, this.socket, this.uri);
+        this.createSocket();
+        this.createEndpoint();
     }
 
     public RemoteMessage receiveMessage() throws ConnectionException, MessageDeserializationException {
 
-        byte[] messageBuffer = nano.nn_recvbyte(this.socket, nano.NN_DONTWAIT);
+        byte[] messageBuffer = nano.nn_recvbyte(socket, nano.NN_DONTWAIT);
 
         if (messageBuffer == null) {
             int errn = nano.nn_errno();
@@ -37,18 +41,12 @@ class CommunicationEndpoint {
             }
         }
 
-        return this.communicationStrategy.deserializeMessage(ByteBuffer.wrap(messageBuffer));
+        return communicationStrategy.deserializeMessage(ByteBuffer.wrap(messageBuffer));
     }
 
     public void disconnect() {
         nano.nn_shutdown(socket, endpointId);
-    }
-
-    private void createSocket() throws ConnectionException {
-        socket = nano.nn_socket(nano.AF_SP, this.communicationStrategy.getEndpointType(nano));
-        if (socket < 0) {
-            throw new ConnectionException(String.format("Error in nn_socket: %s\n", nano.nn_strerror(nano.nn_errno())));
-        }
+        nano.nn_close(socket);
     }
 
     public void sendMessage(byte[] message) throws ConnectionException {
@@ -59,7 +57,7 @@ class CommunicationEndpoint {
         }
     }
 
-    public boolean sendMessageDontWait(byte[] message) throws ConnectionException {
+    public boolean sendMessageAsync(byte[] message) throws ConnectionException {
         int result = nano.nn_sendbyte(socket, message, nano.NN_DONTWAIT);
         if (result < 0) {
             int errn = nano.nn_errno();
@@ -70,5 +68,26 @@ class CommunicationEndpoint {
             }
         }
         return true;
+    }
+
+    public boolean isControlEndpoint() {
+        return (communicationStrategy instanceof CommunicationControlStrategy);
+    }
+
+    private void createSocket() throws ConnectionException {
+        socket = nano.nn_socket(nano.AF_SP, communicationStrategy.getEndpointType(nano));
+        if (socket < 0) {
+            throw new ConnectionException(String.format("Error in nn_socket: %s\n", nano.nn_strerror(nano.nn_errno())));
+        }
+    }
+
+    private void createEndpoint() throws ConnectionException {
+        endpointId = nano.nn_bind(socket, uri);
+
+        if (endpointId < 0) {
+            int errn = nano.nn_errno();
+            nano.nn_close(socket);
+            throw new ConnectionException(String.format("Error: %d - %s\n", errn, nano.nn_strerror(errn)));
+        }
     }
 }

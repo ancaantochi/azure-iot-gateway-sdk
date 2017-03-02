@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) Microsoft. All rights reserved.
+ * Licensed under the MIT license. See LICENSE file in the project root for full license information.
+ */
 package com.microsoft.azure.gateway.remote;
 
 import java.nio.ByteBuffer;
@@ -13,18 +17,6 @@ class CommunicationDataStrategy implements CommunicationStrategy {
     }
 
 	@Override
-	public int createEndpoint(NanoLibrary nano, int socket, String uri) throws ConnectionException {
-		int endpointId = nano.nn_connect(socket, uri);
-
-		if (endpointId < 0) {
-			int errn = nano.nn_errno();
-			throw new ConnectionException(String.format("Error: %d - %s\n", errn, nano.nn_strerror(errn)));
-		}
-
-		return endpointId;
-	}
-
-	@Override
     public int getEndpointType(NanoLibrary nano) {
 		return type;
 	}
@@ -33,4 +25,9 @@ class CommunicationDataStrategy implements CommunicationStrategy {
     public RemoteMessage deserializeMessage(ByteBuffer messageBuffer) throws MessageDeserializationException {
 		return new DataMessage(messageBuffer.array());
 	}
+
+    @Override
+    public String getEndpointUri(String identifier) {
+        return identifier;
+    }
 }

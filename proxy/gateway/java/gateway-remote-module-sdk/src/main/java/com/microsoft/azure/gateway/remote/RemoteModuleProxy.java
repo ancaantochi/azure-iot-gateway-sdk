@@ -56,6 +56,9 @@ public class RemoteModuleProxy {
                 if (isAttached) {
                     executor.shutdownNow();
 
+                    if (module != null)
+                        module.destroy();
+
                     if (sendDetachToGateway) {
                         byte[] detachMessage = new MessageSerializer()
                                 .serializeMessage(RemoteModuleResultCode.DETACH.getValue(), this.messageVersion);
@@ -163,7 +166,6 @@ public class RemoteModuleProxy {
             if (module == null)
                 throw new IllegalStateException("Module has to be initialized before calling destroy.");
 
-            module.destroy();
             detach(false);
         }
 

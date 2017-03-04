@@ -18,28 +18,30 @@ class MessageDeserializer {
     public RemoteMessage deserialize(ByteBuffer messageBuffer) throws MessageDeserializationException {
         RemoteMessageType msgType = null;
         int totalSize = 0;
+        messageBuffer.position(0);
 
         byte header1 = messageBuffer.get();
         byte header2 = messageBuffer.get();
         if (header1 == FIRST_MESSAGE_BYTE && header2 == SECOND_MESSAGE_BYTE) {
             // TODO: check version
             byte version = messageBuffer.get();
+
             byte type = messageBuffer.get();
+            msgType = RemoteMessageType.fromValue(type);
+            if (msgType == null)
+                throw new MessageDeserializationException("Invalid message type.");
+
             totalSize = messageBuffer.getInt();
 
             if (totalSize < BASE_MESSAGE_SIZE) {
                 throw new MessageDeserializationException(
                         String.format("Message size %s should be >= %s", totalSize, BASE_MESSAGE_SIZE));
             }
-
             if (totalSize != messageBuffer.limit())
                 throw new MessageDeserializationException(
                         String.format("Message size in header %s is different that actual size %s", totalSize,
                                 messageBuffer.limit()));
 
-            msgType = RemoteMessageType.fromValue(type);
-            if (msgType == null)
-                throw new MessageDeserializationException("Invalid message type.");
         } else {
             throw new MessageDeserializationException("Invalid message header.");
         }
@@ -65,7 +67,7 @@ class MessageDeserializer {
                     String.format("Create message size %s should be >= %s", totalSize, BASE_CREATE_SIZE));
 
         CreateMessage message = null;
-        int version = buffer.get();
+        byte version = buffer.get();
 
         byte uriType = buffer.get();
         int uriSize = buffer.getInt();
@@ -99,14 +101,14 @@ class MessageDeserializer {
         int index = 0;
         byte b = bis.get();
 
-        while (b != '\0' && b != -1 && index < size) {
+        while (b != '\0' && b != -1 && index < size - 1) {
             result[index] = b;
             index++;
             b = bis.get();
         }
 
         if (b != '\0' || index != size - 1)
-            throw new MessageDeserializationException("Module args can not be read.");
+            throw new MessageDeserializationException("Can not deserialize string arguments.");
 
         return new String(result);
     }

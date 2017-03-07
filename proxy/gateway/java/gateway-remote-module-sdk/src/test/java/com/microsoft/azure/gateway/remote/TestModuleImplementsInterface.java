@@ -7,34 +7,25 @@ package com.microsoft.azure.gateway.remote;
 import com.microsoft.azure.gateway.core.Broker;
 import com.microsoft.azure.gateway.core.IGatewayModule;
 
-class TestModule implements IGatewayModule {
+class TestModuleImplementsInterface implements IGatewayModule {
 
-    public TestModule() {
-        // TODO Auto-generated constructor stub
+    public TestModuleImplementsInterface() {
     }
     
     @Override
     public void create(long moduleAddr, Broker broker, String configuration) {
-        // TODO Auto-generated method stub
-        
     }
 
     @Override
     public void start() {
-        // TODO Auto-generated method stub
-        
     }
 
     @Override
     public void receive(byte[] source) {
-        // TODO Auto-generated method stub
-        
     }
 
     @Override
     public void destroy() {
-        // TODO Auto-generated method stub
-        
     }
     
 }

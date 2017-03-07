@@ -17,6 +17,11 @@ class CommunicationEndpoint {
     private int endpointId;
 
     public CommunicationEndpoint(String identifier, CommunicationStrategy communicationStrategy) {
+        if (identifier == null)
+            throw new IllegalArgumentException("Idenitfier can not be null");
+        if (communicationStrategy == null)
+            throw new IllegalArgumentException("Communication strategy can not be null");
+
         this.communicationStrategy = communicationStrategy;
         this.nano = new NanoLibrary();
         this.uri = communicationStrategy.getEndpointUri(identifier);
@@ -33,7 +38,6 @@ class CommunicationEndpoint {
 
         if (messageBuffer == null) {
             int errn = nano.nn_errno();
-            errn = nano.nn_errno();
             if (errn == nano.EAGAIN) {
                 return null;
             } else {

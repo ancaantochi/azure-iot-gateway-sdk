@@ -20,6 +20,11 @@ class MessageDeserializer {
         int totalSize = 0;
         messageBuffer.position(0);
 
+        if (messageBuffer.limit() < BASE_MESSAGE_SIZE) {
+            throw new MessageDeserializationException(
+                    String.format("Message size %s should be >= %s", messageBuffer.limit(), BASE_MESSAGE_SIZE));
+        }
+
         byte header1 = messageBuffer.get();
         byte header2 = messageBuffer.get();
         if (header1 == FIRST_MESSAGE_BYTE && header2 == SECOND_MESSAGE_BYTE) {
@@ -33,10 +38,6 @@ class MessageDeserializer {
 
             totalSize = messageBuffer.getInt();
 
-            if (totalSize < BASE_MESSAGE_SIZE) {
-                throw new MessageDeserializationException(
-                        String.format("Message size %s should be >= %s", totalSize, BASE_MESSAGE_SIZE));
-            }
             if (totalSize != messageBuffer.limit())
                 throw new MessageDeserializationException(
                         String.format("Message size in header %s is different that actual size %s", totalSize,

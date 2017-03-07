@@ -35,7 +35,7 @@ public class RemoteModuleProxy {
         if (!isAttached) {
             synchronized (config) {
                 if (!isAttached) {
-                    this.controlEndpoint = new CommunicationEndpoint(this.config.getIdentifier(),
+                    controlEndpoint = new CommunicationEndpoint(this.config.getIdentifier(),
                             new CommunicationControlStrategy());
                     controlEndpoint.connect();
                     isAttached = true;
@@ -81,7 +81,7 @@ public class RemoteModuleProxy {
         }
     }
 
-    private void startListening() {
+    void startListening() {
         if (!isAttached)
             throw new IllegalStateException("Please call attach before starting listening.");
         if (executor != null)

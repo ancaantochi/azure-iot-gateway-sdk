@@ -4,13 +4,14 @@
  */
 package com.microsoft.azure.gateway.remote;
 
-class CreateMessage extends RemoteMessage {
+class CreateMessage extends ControlMessage {
 
     private final DataEndpointConfig endpointsConfig;
     private final String args;
     private final int version;
 
     public CreateMessage(DataEndpointConfig endpointsConfig, String args, int version) {
+        super(RemoteMessageType.CREATE);
         this.endpointsConfig = endpointsConfig;
         this.args = args;
         this.version = version;

@@ -68,8 +68,8 @@ public class MessageDeserializerTest {
         invalidSizeMessage.putInt(size);
 
         MessageDeserializer deserializer = new MessageDeserializer();
-        RemoteMessage message = deserializer.deserialize(invalidSizeMessage);
-        assertTrue(message instanceof StartMessage);
+        ControlMessage message = (ControlMessage) deserializer.deserialize(invalidSizeMessage);
+        assertEquals(RemoteMessageType.START, message.getMessageType());
     }
 
     @Test
@@ -83,8 +83,8 @@ public class MessageDeserializerTest {
         invalidSizeMessage.putInt(size);
 
         MessageDeserializer deserializer = new MessageDeserializer();
-        RemoteMessage message = deserializer.deserialize(invalidSizeMessage);
-        assertTrue(message instanceof DestroyMessage);
+        ControlMessage message = (ControlMessage) deserializer.deserialize(invalidSizeMessage);
+        assertEquals(RemoteMessageType.DESTROY, message.getMessageType());
     }
 
     @Test

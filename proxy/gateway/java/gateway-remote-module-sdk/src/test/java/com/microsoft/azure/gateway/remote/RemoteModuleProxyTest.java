@@ -9,6 +9,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -16,6 +18,7 @@ import org.nanomsg.NanoLibrary;
 
 import com.microsoft.azure.gateway.core.Broker;
 import com.microsoft.azure.gateway.core.IGatewayModule;
+import com.microsoft.azure.gateway.remote.RemoteModuleProxy.MessageListener;
 
 import mockit.Deencapsulation;
 import mockit.Expectations;
@@ -473,6 +476,63 @@ public class RemoteModuleProxyTest {
     }
 
     @Test
+    public void attachShouldHandleCreateDataEndpointFail(@Mocked final CommunicationEndpoint controlEndpoint,
+            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final MessageSerializer serializer)
+            throws ConnectionException, MessageDeserializationException {
+
+        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final DataEndpointConfig endpointsConfig = new DataEndpointConfig(dataSocketId, 1);
+        final CreateMessage createMessage = new CreateMessage(endpointsConfig, args, version);
+
+        new Expectations(RemoteModuleProxy.class) {
+            {
+                proxy.startListening();
+            }
+        };
+        new Expectations() {
+            {
+                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                result = controlEndpoint;
+                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                result = dataEndpoint;
+
+                controlEndpoint.connect();
+                controlEndpoint.receiveMessage();
+                result = createMessage;
+
+                dataEndpoint.connect();
+                result = new ConnectionException();
+
+                serializer.serializeMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue(), version);
+
+                controlEndpoint.sendMessageAsync((byte[]) any);
+                result = true;
+            }
+        };
+
+        proxy.attach();
+        RemoteModuleProxy.MessageListener receiveMessage = Deencapsulation.getField(proxy, "receiveMessageListener");
+        receiveMessage.executeControlMessage();
+        receiveMessage.executeDataMessage();
+
+        new Verifications() {
+            {
+                controlEndpoint.connect();
+                times = 1;
+
+                serializer.serializeMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue(), version);
+                times = 1;
+
+                controlEndpoint.sendMessageAsync((byte[]) any);
+                times = 1;
+            }
+        };
+
+        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
+        assertTrue(isAttached);
+    }
+
+    @Test
     public void attachShouldSendCreationErrorWhenModuleInstantionFails(
             @Mocked final CommunicationEndpoint controlEndpoint, @Mocked final CommunicationEndpoint dataEndpoint,
             @Mocked final TestModuleImplementsInterface module, @Mocked final MessageSerializer serializer)
@@ -534,5 +594,349 @@ public class RemoteModuleProxyTest {
 
         boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
         assertTrue(isAttached);
+    }
+
+    @Test
+    public void attachShouldCallModuleStart(@Mocked final CommunicationEndpoint controlEndpoint,
+            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module)
+            throws ConnectionException, MessageDeserializationException {
+
+        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final DataEndpointConfig endpointsConfig = new DataEndpointConfig(dataSocketId, 1);
+        final CreateMessage createMessage = new CreateMessage(endpointsConfig, args, version);
+        final ControlMessage startMessage = new ControlMessage(RemoteMessageType.START);
+        final RemoteMessage nullMessage = null;
+
+        new Expectations(RemoteModuleProxy.class) {
+            {
+                proxy.startListening();
+            }
+        };
+        new Expectations() {
+            {
+                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                result = controlEndpoint;
+                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                result = dataEndpoint;
+
+                new TestModuleImplementsInterface();
+                result = module;
+
+                controlEndpoint.connect();
+                controlEndpoint.receiveMessage();
+                returns(createMessage, startMessage);
+                controlEndpoint.sendMessageAsync((byte[]) any);
+                result = true;
+
+                dataEndpoint.connect();
+                dataEndpoint.receiveMessage();
+                returns(nullMessage);
+            }
+        };
+
+        proxy.attach();
+        MessageListener messageListener = Deencapsulation.getField(proxy, "receiveMessageListener");
+        messageListener.executeControlMessage();
+        messageListener.executeDataMessage();
+
+        messageListener.executeControlMessage();
+        messageListener.executeDataMessage();
+
+        new Verifications() {
+            {
+                controlEndpoint.connect();
+                times = 1;
+                controlEndpoint.sendMessageAsync((byte[]) any);
+                times = 1;
+                dataEndpoint.connect();
+                times = 1;
+
+                module.create(anyLong, (Broker) any, anyString);
+                times = 1;
+                module.start();
+                times = 1;
+            }
+        };
+
+        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
+        assertTrue(isAttached);
+    }
+
+    @Test
+    public void attachShouldIgnoreMessageWhenStartMessageBeforeCreate(
+            @Mocked final CommunicationEndpoint controlEndpoint, @Mocked final CommunicationEndpoint dataEndpoint)
+            throws ConnectionException, MessageDeserializationException {
+
+        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ControlMessage startMessage = new ControlMessage(RemoteMessageType.START);
+
+        new Expectations(RemoteModuleProxy.class) {
+            {
+                proxy.startListening();
+            }
+        };
+        new Expectations() {
+            {
+                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                result = controlEndpoint;
+                controlEndpoint.receiveMessage();
+                returns(startMessage);
+            }
+        };
+
+        proxy.attach();
+        MessageListener messageListener = Deencapsulation.getField(proxy, "receiveMessageListener");
+        messageListener.executeControlMessage();
+        messageListener.executeDataMessage();
+
+        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
+        assertTrue(isAttached);
+    }
+
+    @Test
+    public void attachShouldCallModuleDestroy(@Mocked final CommunicationEndpoint controlEndpoint,
+            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module)
+            throws ConnectionException, MessageDeserializationException {
+
+        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final DataEndpointConfig endpointsConfig = new DataEndpointConfig(dataSocketId, 1);
+        final CreateMessage createMessage = new CreateMessage(endpointsConfig, args, version);
+        final ControlMessage destroyMessage = new ControlMessage(RemoteMessageType.DESTROY);
+
+        new Expectations(RemoteModuleProxy.class) {
+            {
+                proxy.startListening();
+            }
+        };
+        new Expectations() {
+            {
+                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                result = controlEndpoint;
+                controlEndpoint.receiveMessage();
+                returns(createMessage, destroyMessage);
+
+                controlEndpoint.sendMessageAsync((byte[]) any);
+                result = true;
+
+                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                result = dataEndpoint;
+                dataEndpoint.receiveMessage();
+                result = null;
+
+                new TestModuleImplementsInterface();
+                result = module;
+            }
+        };
+
+        proxy.attach();
+        Deencapsulation.setField(proxy, Executors.newSingleThreadScheduledExecutor());
+
+        MessageListener messageListener = Deencapsulation.getField(proxy, "receiveMessageListener");
+        messageListener.executeControlMessage();
+        messageListener.executeDataMessage();
+
+        messageListener.executeControlMessage();
+        messageListener.executeDataMessage();
+
+        new Verifications() {
+            {
+                controlEndpoint.connect();
+                times = 1;
+
+                controlEndpoint.sendMessageAsync((byte[]) any);
+                times = 1;
+
+                new TestModuleImplementsInterface();
+                times = 1;
+
+                module.destroy();
+                times = 1;
+            }
+        };
+
+        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
+        assertFalse(isAttached);
+    }
+
+    @Test
+    public void attachShouldDestroyWhenDestroyMessageBeforeCreate(@Mocked final CommunicationEndpoint controlEndpoint,
+            @Mocked final CommunicationEndpoint dataEndpoint)
+            throws ConnectionException, MessageDeserializationException {
+
+        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ControlMessage destroyMessage = new ControlMessage(RemoteMessageType.DESTROY);
+
+        new Expectations() {
+            {
+                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                result = controlEndpoint;
+                controlEndpoint.receiveMessage();
+                returns(destroyMessage);
+            }
+        };
+
+        proxy.attach();
+        MessageListener messageListener = Deencapsulation.getField(proxy, "receiveMessageListener");
+        messageListener.executeControlMessage();
+        messageListener.executeDataMessage();
+
+        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
+        assertFalse(isAttached);
+    }
+
+    @Test
+    public void attachShouldReceiveDataMessage(@Mocked final CommunicationEndpoint controlEndpoint,
+            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
+            @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
+
+        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final DataEndpointConfig endpointsConfig = new DataEndpointConfig(dataSocketId, 1);
+        final CreateMessage createMessage = new CreateMessage(endpointsConfig, args, version);
+        final ControlMessage startMessage = new ControlMessage(RemoteMessageType.START);
+        final byte[] content = new byte[] { (byte) 0xA1, (byte) 0x60 };
+        final DataMessage dataMessage = new DataMessage(content);
+
+        new Expectations(RemoteModuleProxy.class) {
+            {
+                proxy.startListening();
+            }
+        };
+        new Expectations() {
+            {
+                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                result = controlEndpoint;
+                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                result = dataEndpoint;
+
+                new TestModuleImplementsInterface();
+                result = module;
+
+                controlEndpoint.connect();
+                controlEndpoint.receiveMessage();
+                returns(createMessage, startMessage);
+                controlEndpoint.sendMessageAsync((byte[]) any);
+                result = true;
+
+                serializer.serializeMessage(RemoteModuleResultCode.OK.getValue(), version);
+
+                dataEndpoint.connect();
+                dataEndpoint.receiveMessage();
+                returns(null, dataMessage);
+            }
+        };
+
+        proxy.attach();
+        RemoteModuleProxy.MessageListener receiveMessage = Deencapsulation.getField(proxy, "receiveMessageListener");
+        receiveMessage.executeControlMessage();
+        receiveMessage.executeDataMessage();
+
+        receiveMessage.executeControlMessage();
+        receiveMessage.executeDataMessage();
+
+        new Verifications() {
+            {
+                controlEndpoint.connect();
+                times = 1;
+                controlEndpoint.sendMessageAsync((byte[]) any);
+                times = 1;
+
+                dataEndpoint.connect();
+                times = 1;
+
+                module.create(anyLong, (Broker) any, anyString);
+                times = 1;
+                module.start();
+                times = 1;
+                module.receive(content);
+
+                serializer.serializeMessage(RemoteModuleResultCode.OK.getValue(), version);
+                times = 1;
+            }
+        };
+
+        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
+        assertTrue(isAttached);
+    }
+
+    @Test
+    public void detachSuccess(@Mocked final CommunicationEndpoint controlEndpoint,
+            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
+            @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
+
+        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final DataEndpointConfig endpointsConfig = new DataEndpointConfig(dataSocketId, 1);
+        final CreateMessage createMessage = new CreateMessage(endpointsConfig, args, version);
+        final ControlMessage startMessage = new ControlMessage(RemoteMessageType.START);
+        final byte[] content = new byte[] { (byte) 0xA1, (byte) 0x60 };
+        final DataMessage dataMessage = new DataMessage(content);
+
+//        new Expectations(RemoteModuleProxy.class) {
+//            {
+//                proxy.startListening();
+//            }
+//        };
+        new Expectations() {
+            {
+                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                result = controlEndpoint;
+                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                result = dataEndpoint;
+
+                new TestModuleImplementsInterface();
+                result = module;
+
+                controlEndpoint.connect();
+                controlEndpoint.receiveMessage();
+                returns(createMessage, startMessage, null);
+                controlEndpoint.sendMessageAsync((byte[]) any);
+                result = true;
+
+                serializer.serializeMessage(RemoteModuleResultCode.OK.getValue(), version);
+                serializer.serializeMessage(RemoteModuleResultCode.DETACH.getValue(), version);
+
+                dataEndpoint.connect();
+                dataEndpoint.receiveMessage();
+                returns(null, dataMessage);
+            }
+        };
+
+        proxy.attach();
+        
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
+        proxy.detach();
+
+        new Verifications() {
+            {
+                controlEndpoint.connect();
+                times = 1;
+                controlEndpoint.sendMessageAsync((byte[]) any);
+                times = 2;
+
+                dataEndpoint.connect();
+                times = 1;
+
+                module.create(anyLong, (Broker) any, anyString);
+                times = 1;
+                module.start();
+                times = 1;
+                module.receive(content);
+                module.destroy();
+                times = 1;
+
+                serializer.serializeMessage(RemoteModuleResultCode.OK.getValue(), version);
+                times = 1;
+                
+                serializer.serializeMessage(RemoteModuleResultCode.DETACH.getValue(), version);
+                times = 1;
+            }
+        };
+
+        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
+        assertFalse(isAttached);
     }
 }

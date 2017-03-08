@@ -22,6 +22,7 @@ class TestModuleImplementsInterface implements IGatewayModule {
 
     @Override
     public void receive(byte[] source) {
+        int i = 0;
     }
 
     @Override

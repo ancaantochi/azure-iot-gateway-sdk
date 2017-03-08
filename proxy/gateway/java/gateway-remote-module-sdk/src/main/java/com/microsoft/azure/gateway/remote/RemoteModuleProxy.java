@@ -164,7 +164,8 @@ public class RemoteModuleProxy {
                 disconnectDataMessage();
             }
             if (message != null) {
-                if (message instanceof CreateMessage) {
+                ControlMessage controlMessage = (ControlMessage)message;
+                if (controlMessage.getMessageType() == RemoteMessageType.CREATE) {
                     try {
                         this.processCreateMessage(message, getControlEndpoint());
                         boolean sent = sendControlReplyMessage(RemoteModuleResultCode.OK.getValue());
@@ -181,26 +182,23 @@ public class RemoteModuleProxy {
                     }
                 }
 
-                if (message instanceof StartMessage) {
+                if (controlMessage.getMessageType() == RemoteMessageType.START) {
                     this.processStartMessage();
                 }
 
-                if (message instanceof DestroyMessage) {
+                if (controlMessage.getMessageType() == RemoteMessageType.DESTROY) {
                     this.processDestroyMessage();
                 }
             }
         }
 
         private void processDestroyMessage() {
-            if (getModule() == null)
-                throw new IllegalStateException("Module has to be initialized before calling destroy.");
-
             detach(false);
         }
 
         private void processStartMessage() {
             if (getModule() == null)
-                throw new IllegalStateException("Module has to be initialized before calling start.");
+                return;
 
             getModule().start();
         }

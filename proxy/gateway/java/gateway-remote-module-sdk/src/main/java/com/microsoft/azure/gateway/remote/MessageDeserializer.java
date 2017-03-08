@@ -54,10 +54,8 @@ class MessageDeserializer {
             return this.deserializeStartMessage(messageBuffer);
         case DESTROY:
             return this.deserializeDestroyMessage(messageBuffer);
-        case ERROR:
-            return this.deserializeErrorMessage(messageBuffer);
         default:
-            return new RemoteMessage();
+            return new ControlMessage(RemoteMessageType.ERROR);
         }
     }
 
@@ -85,16 +83,11 @@ class MessageDeserializer {
     }
 
     private RemoteMessage deserializeDestroyMessage(ByteBuffer messageBuffer) {
-        return new DestroyMessage();
+        return new ControlMessage(RemoteMessageType.DESTROY);
     }
 
     private RemoteMessage deserializeStartMessage(ByteBuffer messageBuffer) {
-        return new StartMessage();
-    }
-
-    private RemoteMessage deserializeErrorMessage(ByteBuffer messageBuffer) {
-        // TODO Auto-generated method stub
-        return null;
+        return new ControlMessage(RemoteMessageType.START);
     }
 
     private static String readNullTerminatedString(ByteBuffer bis, int size) throws MessageDeserializationException {

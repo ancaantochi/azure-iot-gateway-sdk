@@ -15,272 +15,242 @@ import com.microsoft.azure.gateway.core.IGatewayModule;
 
 public class RemoteModuleProxy {
 
-    private static final int DEFAULT_DELAY_MILIS = 200;
-    private final ModuleConfiguration config;
-    private boolean isAttached;
-    private CommunicationEndpoint controlEndpoint;
-    private CommunicationEndpoint dataEndpoint;
-    private IGatewayModule module;
-    private int messageVersion;
-    private ScheduledExecutorService executor;
-    private Runnable receiveMessageListener;
+	private static final int DEFAULT_DELAY_MILLIS = 10;
+	private final ModuleConfiguration config;
+	private final Object lock = new Object();
+	private boolean isAttached;
+	private ScheduledExecutorService executor;
+	private MessageListener receiveMessageListener;
 
-    public RemoteModuleProxy(ModuleConfiguration configuration) {
-        if (configuration == null)
-            throw new IllegalArgumentException("Configuration can not be null.");
+	public RemoteModuleProxy(ModuleConfiguration configuration) {
+		if (configuration == null)
+			throw new IllegalArgumentException("Configuration can not be null.");
 
-        this.config = configuration;
-    }
+		this.config = configuration;
+	}
 
-    public void attach() throws ConnectionException {
-        if (!isAttached) {
-            synchronized (config) {
-                if (!isAttached) {
-                    controlEndpoint = new CommunicationEndpoint(this.config.getIdentifier(),
-                            new CommunicationControlStrategy());
-                    controlEndpoint.connect();
-                    isAttached = true;
-                    receiveMessageListener = new MessageListener();
-                    this.startListening();
-                }
-            }
-        }
-    }
+	public void attach() throws ConnectionException {
+		synchronized (lock) {
+			if (!this.isAttached) {
+				this.isAttached = true;
+				this.receiveMessageListener = new MessageListener(config);
+				this.startListening();
+			}
+		}
+	}
 
-    public void detach() {
-        boolean sendDetachToGateway = true;
-        detach(sendDetachToGateway);
-    }
+	public void detach() {
+		boolean sendDetachToGateway = true;
+		this.detach(sendDetachToGateway);
+	}
 
-    private void detach(boolean sendDetachToGateway) {
-        if (isAttached) {
-            synchronized (config) {
-                if (isAttached) {
-                    executor.shutdownNow();
+	void startListening() {
+		this.executor = Executors.newSingleThreadScheduledExecutor();
+		this.executor.scheduleWithFixedDelay(receiveMessageListener, 0, DEFAULT_DELAY_MILLIS, TimeUnit.MILLISECONDS);
+	}
 
-                    if (module != null)
-                        module.destroy();
+	boolean isAttached() {
+		return this.isAttached;
+	}
 
-                    if (sendDetachToGateway) {
-                        byte[] detachMessage = new MessageSerializer()
-                                .serializeMessage(RemoteModuleResultCode.DETACH.getValue(), this.messageVersion);
-                        try {
-                            this.controlEndpoint.sendMessageAsync(detachMessage);
-                        } catch (ConnectionException e) {
-                            e.printStackTrace();
-                        }
-                    }
+	private void detach(boolean sendDetachToGateway) {
+		synchronized (lock) {
+			if (this.isAttached) {
+				this.executor.shutdownNow();
+				try {
+					executor.awaitTermination(60, TimeUnit.SECONDS);
+				} catch (InterruptedException e) {
+				}
 
-                    this.controlEndpoint.disconnect();
-                    if (this.dataEndpoint != null)
-                        this.dataEndpoint.disconnect();
+				this.receiveMessageListener.detach(true);
+				this.isAttached = false;
+			}
+		}
+	}
 
-                    isAttached = false;
-                    executor = null;
-                    receiveMessageListener = null;
-                    module = null;
-                }
-            }
-        }
-    }
+	class MessageListener implements Runnable {
+		private final ModuleConfiguration config;
+		private final Logger logger = LoggerFactory.getLogger(RemoteModuleProxy.class);
+		private CommunicationEndpoint controlEndpoint;
+		private CommunicationEndpoint dataEndpoint;
+		private IGatewayModule module;
+		private int messageVersion;
 
-    void startListening() {
-        if (!isAttached)
-            throw new IllegalStateException("Please call attach before starting listening.");
-        if (executor != null)
-            throw new IllegalStateException("Thread already listening");
+		public MessageListener(ModuleConfiguration config) throws ConnectionException {
+			this.config = config;
+			this.controlEndpoint = new CommunicationEndpoint(this.config.getIdentifier(),
+					new CommunicationControlStrategy());
+			this.controlEndpoint.connect();
+		}
 
-        executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleWithFixedDelay(receiveMessageListener, 0, DEFAULT_DELAY_MILIS, TimeUnit.MILLISECONDS);
-    }
+		@Override
+		public void run() {
+			this.executeControlMessage();
+			this.executeDataMessage();
+		}
 
-    private CommunicationEndpoint getDataEndpoint() {
-        return dataEndpoint;
-    }
+		void executeDataMessage() {
+			try {
+				if (this.dataEndpoint != null) {
+					RemoteMessage dataMessage = this.dataEndpoint.receiveMessage();
+					if (dataMessage != null) {
+						this.module.receive(((DataMessage) dataMessage).getContent());
+					}
+				}
+			} catch (ConnectionException e) {
+				e.printStackTrace();
 
-    private void setDataEndpoint(CommunicationEndpoint value) {
-        dataEndpoint = value;
-    }
+			} catch (MessageDeserializationException e) {
+				e.printStackTrace();
+			}
+		}
 
-    private IGatewayModule getModule() {
-        return module;
-    }
+		public void detach(boolean sendDetachToGateway) {
+			if (this.module != null)
+				this.module.destroy();
 
-    private void setModule(IGatewayModule value) {
-        module = value;
-    }
+			if (sendDetachToGateway) {
+				this.sendControlReplyMessage(RemoteModuleResultCode.DETACH.getValue());
+			}
 
-    private CommunicationEndpoint getControlEndpoint() {
-        return controlEndpoint;
-    }
+			this.controlEndpoint.disconnect();
+			if (this.dataEndpoint != null)
+				this.dataEndpoint.disconnect();
 
-    private void setMessageVersion(int version) {
-        messageVersion = version;
-    }
+			this.module = null;
+		}
 
-    private ModuleConfiguration getConfig() {
-        return config;
-    }
+		void executeControlMessage() {
+			RemoteMessage message = null;
+			try {
+				message = this.controlEndpoint.receiveMessage();
+			} catch (MessageDeserializationException e) {
+				e.printStackTrace();
+				this.sendControlReplyMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue());
+				this.disconnectDataMessage();
+			} catch (ConnectionException e) {
+				e.printStackTrace();
+				this.sendControlReplyMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue());
+				this.disconnectDataMessage();
+			}
+			if (message != null) {
+				ControlMessage controlMessage = (ControlMessage) message;
+				if (controlMessage.getMessageType() == RemoteMessageType.CREATE) {
+					try {
+						this.processCreateMessage(message, this.controlEndpoint);
+						boolean sent = sendControlReplyMessage(RemoteModuleResultCode.OK.getValue());
+						if (!sent)
+							this.disconnectDataMessage();
+					} catch (ConnectionException e) {
+						e.printStackTrace();
+						this.sendControlReplyMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue());
+						this.disconnectDataMessage();
+					} catch (ModuleInstantiationException e) {
+						e.printStackTrace();
+						this.sendControlReplyMessage(RemoteModuleResultCode.CREATION_ERROR.getValue());
+						this.disconnectDataMessage();
+					}
+				}
 
-    private int getMessageVersion() {
-        return messageVersion;
-    }
+				if (controlMessage.getMessageType() == RemoteMessageType.START) {
+					this.processStartMessage();
+				}
 
-    class MessageListener implements Runnable {
+				if (controlMessage.getMessageType() == RemoteMessageType.DESTROY) {
+					this.processDestroyMessage();
+				}
+			}
+		}
 
-        @Override
-        public void run() {
-            executeControlMessage();
-            executeDataMessage();
-        }
+		private void processDestroyMessage() {
+			this.detach(false);
+		}
 
-        void executeDataMessage() {
-            try {
-                if (getDataEndpoint() != null) {
-                    RemoteMessage dataMessage = getDataEndpoint().receiveMessage();
-                    if (dataMessage != null) {
-                        getModule().receive(((DataMessage) dataMessage).getContent());
-                    }
-                }
-            } catch (ConnectionException e) {
-                e.printStackTrace();
+		private void processStartMessage() {
+			if (this.module == null)
+				return;
 
-            } catch (MessageDeserializationException e) {
-                e.printStackTrace();
-            }
-        }
+			this.module.start();
+		}
 
-        void executeControlMessage() {
-            RemoteMessage message = null;
-            try {
-                message = getControlEndpoint().receiveMessage();
-            } catch (MessageDeserializationException e) {
-                e.printStackTrace();
-                sendControlReplyMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue());
-                disconnectDataMessage();
-            } catch (ConnectionException e) {
-                e.printStackTrace();
-                sendControlReplyMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue());
-                disconnectDataMessage();
-            }
-            if (message != null) {
-                ControlMessage controlMessage = (ControlMessage)message;
-                if (controlMessage.getMessageType() == RemoteMessageType.CREATE) {
-                    try {
-                        this.processCreateMessage(message, getControlEndpoint());
-                        boolean sent = sendControlReplyMessage(RemoteModuleResultCode.OK.getValue());
-                        if (!sent)
-                            disconnectDataMessage();
-                    } catch (ConnectionException e) {
-                        e.printStackTrace();
-                        sendControlReplyMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue());
-                        disconnectDataMessage();
-                    } catch (ModuleInstantiationException e) {
-                        e.printStackTrace();
-                        sendControlReplyMessage(RemoteModuleResultCode.CREATION_ERROR.getValue());
-                        disconnectDataMessage();
-                    }
-                }
+		private void processCreateMessage(RemoteMessage message, CommunicationEndpoint endpoint)
+				throws ConnectionException, ModuleInstantiationException {
+			this.disconnectDataMessage();
 
-                if (controlMessage.getMessageType() == RemoteMessageType.START) {
-                    this.processStartMessage();
-                }
+			CreateMessage controlMessage = (CreateMessage) message;
+			this.messageVersion = controlMessage.getVersion();
+			this.dataEndpoint = this.createDataEndpoints(controlMessage.getDataEndpoint());
 
-                if (controlMessage.getMessageType() == RemoteMessageType.DESTROY) {
-                    this.processDestroyMessage();
-                }
-            }
-        }
+			try {
+				this.createModuleInstanceWithArgsConstructor(controlMessage, this.dataEndpoint);
 
-        private void processDestroyMessage() {
-            detach(false);
-        }
+				if (this.module == null) {
+					this.createModuleInstanceNoArgsConstructor(controlMessage, this.dataEndpoint);
+				}
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+				throw new ModuleInstantiationException("Could not instantiate module", e);
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+				throw new ModuleInstantiationException("Could not instantiate module", e);
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+				throw new ModuleInstantiationException("Could not instantiate module", e);
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+				throw new ModuleInstantiationException("Could not instantiate module", e);
+			}
+		}
 
-        private void processStartMessage() {
-            if (getModule() == null)
-                return;
+		private void disconnectDataMessage() {
+			if (this.module != null) {
+				this.module.destroy();
+				this.module = null;
+			}
+			if (this.dataEndpoint != null)
+				this.dataEndpoint.disconnect();
+		}
 
-            getModule().start();
-        }
+		private boolean sendControlReplyMessage(int code) {
+			byte[] createCompletedMessage = new MessageSerializer().serializeMessage(code, this.messageVersion);
+			boolean sent = false;
 
-        private void processCreateMessage(RemoteMessage message, CommunicationEndpoint endpoint)
-                throws ConnectionException, ModuleInstantiationException {
-            disconnectDataMessage();
+			try {
+				sent = this.controlEndpoint.sendMessageAsync(createCompletedMessage);
+			} catch (ConnectionException e) {
+				e.printStackTrace();
+			}
+			return sent;
+		}
 
-            CreateMessage controlMessage = (CreateMessage) message;
-            setMessageVersion(controlMessage.getVersion());
-            setDataEndpoint(this.createDataEndpoints(controlMessage.getDataEndpoint()));
+		private void createModuleInstanceNoArgsConstructor(CreateMessage controlMessage,
+				CommunicationEndpoint dataEndpoint) throws InstantiationException, IllegalAccessException {
+			final int emptyAddress = 0;
+			this.config.getModuleClass().newInstance();
+			this.module.create(emptyAddress, new BrokerProxy(dataEndpoint), controlMessage.getArgs());
+		}
 
-            try {
-                this.createModuleInstanceWithArgsConstructor(controlMessage, getDataEndpoint());
+		private void createModuleInstanceWithArgsConstructor(CreateMessage controlMessage,
+				CommunicationEndpoint dataEndpoint) throws InstantiationException, IllegalAccessException,
+				IllegalArgumentException, InvocationTargetException {
+			Class<? extends IGatewayModule> clazz = this.config.getModuleClass();
+			final int emptyAddress = 0;
+			try {
+				Constructor<? extends IGatewayModule> ctor = clazz.getDeclaredConstructor(long.class, Broker.class,
+						String.class);
+				this.module = ctor.newInstance(emptyAddress, new BrokerProxy(dataEndpoint), controlMessage.getArgs());
+			} catch (NoSuchMethodException e) {
+				e.printStackTrace();
+			}
+		}
 
-                if (getModule() == null) {
-                    this.createModuleInstanceNoArgsConstructor(controlMessage, getDataEndpoint());
-                }
-            } catch (InstantiationException e) {
-                e.printStackTrace();
-                throw new ModuleInstantiationException("Could not instantiate module", e);
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-                throw new ModuleInstantiationException("Could not instantiate module", e);
-            } catch (IllegalArgumentException e) {
-                e.printStackTrace();
-                throw new ModuleInstantiationException("Could not instantiate module", e);
-            } catch (InvocationTargetException e) {
-                e.printStackTrace();
-                throw new ModuleInstantiationException("Could not instantiate module", e);
-            }
-        }
-
-        private void disconnectDataMessage() {
-            if (getModule() != null) {
-                getModule().destroy();
-                setModule(null);
-            }
-            if (getDataEndpoint() != null)
-                getDataEndpoint().disconnect();
-        }
-
-        private boolean sendControlReplyMessage(int code) {
-            byte[] createCompletedMessage = new MessageSerializer().serializeMessage(code, getMessageVersion());
-            boolean sent = false;
-
-            try {
-                sent = getControlEndpoint().sendMessageAsync(createCompletedMessage);
-            } catch (ConnectionException e) {
-                e.printStackTrace();
-            }
-            return sent;
-        }
-
-        private void createModuleInstanceNoArgsConstructor(CreateMessage controlMessage,
-                CommunicationEndpoint dataEndpoint) throws InstantiationException, IllegalAccessException {
-            final int emptyAddress = 0;
-            setModule(getConfig().getModuleClass().newInstance());
-            getModule().create(emptyAddress, new BrokerProxy(dataEndpoint), controlMessage.getArgs());
-        }
-
-        private void createModuleInstanceWithArgsConstructor(CreateMessage controlMessage,
-                CommunicationEndpoint dataEndpoint) throws InstantiationException, IllegalAccessException,
-                IllegalArgumentException, InvocationTargetException {
-            Class<? extends IGatewayModule> clazz = getConfig().getModuleClass();
-            final int emptyAddress = 0;
-            try {
-                Constructor<? extends IGatewayModule> ctor = clazz.getDeclaredConstructor(long.class, Broker.class,
-                        String.class);
-                setModule(ctor.newInstance(emptyAddress, new BrokerProxy(dataEndpoint), controlMessage.getArgs()));
-            } catch (NoSuchMethodException e) {
-                e.printStackTrace();
-            }
-        }
-
-        private CommunicationEndpoint createDataEndpoints(DataEndpointConfig endpointConfig)
-                throws ConnectionException {
-            CommunicationEndpoint endpoint = new CommunicationEndpoint(endpointConfig.getId(),
-                    new CommunicationDataStrategy(endpointConfig.getType()));
-            endpoint.connect();
-            return endpoint;
-        }
-    }
+		private CommunicationEndpoint createDataEndpoints(DataEndpointConfig endpointConfig)
+				throws ConnectionException {
+			CommunicationEndpoint endpoint = new CommunicationEndpoint(endpointConfig.getId(),
+					new CommunicationDataStrategy(endpointConfig.getType()));
+			endpoint.connect();
+			return endpoint;
+		}
+	}
 
 }

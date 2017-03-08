@@ -232,8 +232,7 @@ public class RemoteModuleProxyTest {
             }
         };
 
-        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
-        assertTrue(isAttached);
+        assertTrue(proxy.isAttached());
     }
 
     @Test
@@ -290,10 +289,9 @@ public class RemoteModuleProxyTest {
             }
         };
 
-        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
-        IGatewayModule module = Deencapsulation.getField(proxy, "module");
-        assertTrue(isAttached);
-        assertNotNull(module);
+//        IGatewayModule module = Deencapsulation.getField(proxy, "module");
+        assertTrue(proxy.isAttached());
+//        assertNotNull(module);
     }
 
     @Test
@@ -365,8 +363,7 @@ public class RemoteModuleProxyTest {
             }
         };
 
-        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
-        assertTrue(isAttached);
+        assertTrue(proxy.isAttached());
     }
 
     @Test
@@ -418,8 +415,7 @@ public class RemoteModuleProxyTest {
             }
         };
 
-        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
-        assertTrue(isAttached);
+        assertTrue(proxy.isAttached());
     }
 
     @Test
@@ -471,8 +467,7 @@ public class RemoteModuleProxyTest {
             }
         };
 
-        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
-        assertTrue(isAttached);
+        assertTrue(proxy.isAttached());
     }
 
     @Test
@@ -528,8 +523,7 @@ public class RemoteModuleProxyTest {
             }
         };
 
-        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
-        assertTrue(isAttached);
+        assertTrue(proxy.isAttached());
     }
 
     @Test
@@ -592,8 +586,7 @@ public class RemoteModuleProxyTest {
             }
         };
 
-        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
-        assertTrue(isAttached);
+        assertTrue(proxy.isAttached());
     }
 
     @Test
@@ -658,8 +651,7 @@ public class RemoteModuleProxyTest {
             }
         };
 
-        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
-        assertTrue(isAttached);
+        assertTrue(proxy.isAttached());
     }
 
     @Test
@@ -689,8 +681,7 @@ public class RemoteModuleProxyTest {
         messageListener.executeControlMessage();
         messageListener.executeDataMessage();
 
-        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
-        assertTrue(isAttached);
+        assertTrue(proxy.isAttached());
     }
 
     @Test
@@ -754,8 +745,7 @@ public class RemoteModuleProxyTest {
             }
         };
 
-        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
-        assertFalse(isAttached);
+        assertTrue(proxy.isAttached());
     }
 
     @Test
@@ -780,8 +770,7 @@ public class RemoteModuleProxyTest {
         messageListener.executeControlMessage();
         messageListener.executeDataMessage();
 
-        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
-        assertFalse(isAttached);
+        assertFalse(proxy.isAttached());
     }
 
     @Test
@@ -854,8 +843,7 @@ public class RemoteModuleProxyTest {
             }
         };
 
-        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
-        assertTrue(isAttached);
+        assertTrue(proxy.isAttached());
     }
 
     @Test
@@ -936,7 +924,6 @@ public class RemoteModuleProxyTest {
             }
         };
 
-        boolean isAttached = Deencapsulation.getField(proxy, boolean.class);
-        assertFalse(isAttached);
+        assertFalse(proxy.isAttached());
     }
 }

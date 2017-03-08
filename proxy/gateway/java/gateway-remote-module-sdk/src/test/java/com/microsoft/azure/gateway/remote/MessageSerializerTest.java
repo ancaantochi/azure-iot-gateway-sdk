@@ -14,10 +14,13 @@ import mockit.Deencapsulation;
 
 public class MessageSerializerTest {
 
+    private static final byte VERSION = 1;
+    private static final int STATUS = 1;
+
     @Test
-    public void test() {
+    public void serializeSuccess() {
         MessageSerializer serializer = new MessageSerializer();
-        byte[] result = serializer.serializeMessage(1, 1);
+        byte[] result = serializer.serializeMessage(STATUS, VERSION);
         
         ByteBuffer buffer = ByteBuffer.wrap(result);
         byte header1 = buffer.get();

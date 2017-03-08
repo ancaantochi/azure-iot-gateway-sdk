@@ -35,7 +35,7 @@ public class BrokerProxyTest {
     }
     
     @Test(expected=IOException.class)
-    public void publishMessageShouldThrowWhenEndpointThrows() throws ConnectionException, IOException {
+    public void publishMessageShouldThrowIfEndpointThrows() throws ConnectionException, IOException {
         final Message message = new Message("Test".getBytes(), new HashMap<String, String>());
 
         new Expectations() {
@@ -51,7 +51,7 @@ public class BrokerProxyTest {
     }
     
     @Test(expected=IllegalArgumentException.class)
-    public void publishMessageShouldThrowWhenEndpointIsNull() throws ConnectionException, IOException {
+    public void publishMessageShouldThrowIfEndpointIsNull() throws ConnectionException, IOException {
         final Message message = new Message("Test".getBytes(), new HashMap<String, String>());
 
         long moduleAddr = 0;

@@ -15,7 +15,7 @@ class MessageDeserializer {
     private static final byte BASE_MESSAGE_SIZE = 8;
     private static final byte BASE_CREATE_SIZE = BASE_MESSAGE_SIZE + 10;
 
-    public RemoteMessage deserialize(ByteBuffer messageBuffer) throws MessageDeserializationException {
+    public RemoteMessage deserialize(ByteBuffer messageBuffer, byte version) throws MessageDeserializationException {
         RemoteMessageType msgType = null;
         int totalSize = 0;
         messageBuffer.position(0);
@@ -28,8 +28,9 @@ class MessageDeserializer {
         byte header1 = messageBuffer.get();
         byte header2 = messageBuffer.get();
         if (header1 == FIRST_MESSAGE_BYTE && header2 == SECOND_MESSAGE_BYTE) {
-            // TODO: check version
-            byte version = messageBuffer.get();
+            byte messageVersion = messageBuffer.get();
+            if (messageVersion > version)
+                throw new MessageDeserializationException(String.format("Message version %s can not be higher than configured version %s", messageVersion, version));
 
             byte type = messageBuffer.get();
             msgType = RemoteMessageType.fromValue(type);

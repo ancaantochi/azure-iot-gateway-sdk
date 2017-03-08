@@ -21,7 +21,6 @@ public class MessageDeserializerTest {
     private static final byte CREATE_MESSAGE_TYPE = (byte) RemoteMessageType.CREATE.getValue();
     private static final byte INVALID_MESSAGE_TYPE = (byte) 5;
     private static final byte VALID_MESSAGE_VERSION = CREATE_MESSAGE_TYPE;
-    private static final byte INVALID_MESSAGE_VERSION = (byte) 0x05;
     private static final byte VALID_HEADER2 = (byte) 0x6C;
     private static final byte VALID_HEADER1 = (byte) 0xA1;
     private static final byte INVALID_HEADER2 = (byte) 0x6A;
@@ -29,6 +28,8 @@ public class MessageDeserializerTest {
     private static final byte VALID_URI_TYPE = (byte) 16;
     private static final int INVALID_URI_SIZE_TOO_SMALL = 5;
     private static final int INVALID_URI_SIZE_TOO_LARGE = 30;
+    private static final byte MESSAGE_VERSION = 1;
+    private static final byte INVALID_MESSAGE_VERSION = 2;
     private byte smallSize = 7;
 
     @Test
@@ -48,13 +49,13 @@ public class MessageDeserializerTest {
         invalidSizeMessage.put(MODULE_ARGS.getBytes());
 
         MessageDeserializer deserializer = new MessageDeserializer();
-        RemoteMessage message = deserializer.deserialize(invalidSizeMessage);
+        RemoteMessage message = deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
         assertTrue(message instanceof CreateMessage);
         CreateMessage createMessage = (CreateMessage) message;
-        assertEquals(createMessage.getDataEndpoint().getId(), DATA_MESSAGE_SOCKET_NAME.trim());
-        assertEquals(createMessage.getDataEndpoint().getType(), VALID_URI_TYPE);
-        assertEquals(createMessage.getVersion(), VALID_MESSAGE_VERSION);
-        assertEquals(createMessage.getArgs(), MODULE_ARGS.trim());
+        assertEquals(DATA_MESSAGE_SOCKET_NAME.trim(), createMessage.getDataEndpoint().getId());
+        assertEquals(VALID_URI_TYPE, createMessage.getDataEndpoint().getType());
+        assertEquals(VALID_MESSAGE_VERSION, createMessage.getVersion());
+        assertEquals(MODULE_ARGS.trim(), createMessage.getArgs());
     }
 
     @Test
@@ -68,7 +69,7 @@ public class MessageDeserializerTest {
         invalidSizeMessage.putInt(size);
 
         MessageDeserializer deserializer = new MessageDeserializer();
-        ControlMessage message = (ControlMessage) deserializer.deserialize(invalidSizeMessage);
+        ControlMessage message = (ControlMessage) deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
         assertEquals(RemoteMessageType.START, message.getMessageType());
     }
 
@@ -83,12 +84,13 @@ public class MessageDeserializerTest {
         invalidSizeMessage.putInt(size);
 
         MessageDeserializer deserializer = new MessageDeserializer();
-        ControlMessage message = (ControlMessage) deserializer.deserialize(invalidSizeMessage);
+        ControlMessage message = (ControlMessage) deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
         assertEquals(RemoteMessageType.DESTROY, message.getMessageType());
     }
 
     @Test
-    public void deserializationShouldReturnNullWhenMessageTypeIsError() throws MessageDeserializationException {
+    public void deserializationShouldReturnControlMessageErrorIfMessageTypeIsError()
+            throws MessageDeserializationException {
         int size = 8;
         ByteBuffer invalidSizeMessage = ByteBuffer.allocate(size);
         invalidSizeMessage.put(VALID_HEADER1);
@@ -98,19 +100,19 @@ public class MessageDeserializerTest {
         invalidSizeMessage.putInt(size);
 
         MessageDeserializer deserializer = new MessageDeserializer();
-        RemoteMessage message = deserializer.deserialize(invalidSizeMessage);
-        assertNull(message);
+        ControlMessage message = (ControlMessage) deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
+        assertEquals(RemoteMessageType.ERROR, message.getMessageType());
     }
 
     @Test
-    public void deserializationShouldThrowWhenInvalidHeader() {
+    public void deserializationShouldThrowIfInvalidHeader() {
         ByteBuffer invalidHeader1Message = ByteBuffer.allocate(8);
         invalidHeader1Message.put(INVALID_HEADER1);
         invalidHeader1Message.put(INVALID_HEADER2);
 
         MessageDeserializer deserializer = new MessageDeserializer();
         try {
-            deserializer.deserialize(invalidHeader1Message);
+            deserializer.deserialize(invalidHeader1Message, MESSAGE_VERSION);
         } catch (MessageDeserializationException e) {
             assertEquals(e.getMessage(), "Invalid message header.");
         }
@@ -120,14 +122,14 @@ public class MessageDeserializerTest {
         invalidHeader2Message.put(INVALID_HEADER2);
 
         try {
-            deserializer.deserialize(invalidHeader2Message);
+            deserializer.deserialize(invalidHeader2Message, MESSAGE_VERSION);
         } catch (MessageDeserializationException e) {
             assertEquals(e.getMessage(), "Invalid message header.");
         }
     }
 
     @Test
-    public void deserializationShouldThrowWhenInvalidMessageVersion() {
+    public void deserializationShouldThrowIfInvalidMessageVersion() {
         ByteBuffer invalidSizeMessage = ByteBuffer.allocate(8);
         invalidSizeMessage.put(VALID_HEADER1);
         invalidSizeMessage.put(VALID_HEADER2);
@@ -135,14 +137,14 @@ public class MessageDeserializerTest {
 
         MessageDeserializer deserializer = new MessageDeserializer();
         try {
-            deserializer.deserialize(invalidSizeMessage);
+            deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
         } catch (MessageDeserializationException e) {
-            assertEquals(e.getMessage(), "Version is not supported");
+            assertEquals(String.format("Message version %s can not be higher than configured version %s", INVALID_MESSAGE_VERSION, MESSAGE_VERSION), e.getMessage());
         }
     }
 
     @Test
-    public void deserializationShouldThrowWhenInvalidMessageType() {
+    public void deserializationShouldThrowIfInvalidMessageType() {
         ByteBuffer invalidSizeMessage = ByteBuffer.allocate(8);
         invalidSizeMessage.put(VALID_HEADER1);
         invalidSizeMessage.put(VALID_HEADER2);
@@ -151,39 +153,39 @@ public class MessageDeserializerTest {
 
         MessageDeserializer deserializer = new MessageDeserializer();
         try {
-            deserializer.deserialize(invalidSizeMessage);
+            deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
         } catch (MessageDeserializationException e) {
-            assertEquals(e.getMessage(), "Invalid message type.");
+            assertEquals("Invalid message type.", e.getMessage());
         }
     }
-    
+
     @Test
-    public void deserializationShouldThrowWhenHeaderIsMissing() {
-       
+    public void deserializationShouldThrowIfHeaderIsMissing() {
+
         ByteBuffer invalidSizeMessage = ByteBuffer.allocate(1);
         invalidSizeMessage.put(VALID_HEADER1);
 
         MessageDeserializer deserializer = new MessageDeserializer();
         try {
-            deserializer.deserialize(invalidSizeMessage);
+            deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
         } catch (MessageDeserializationException e) {
             byte minSize = Deencapsulation.getField(MessageDeserializer.class, "BASE_MESSAGE_SIZE");
-            assertEquals(e.getMessage(), String.format("Message size %s should be >= %s", invalidSizeMessage.limit(), minSize));
+            assertEquals(String.format("Message size %s should be >= %s", invalidSizeMessage.limit(), minSize), e.getMessage());
         }
 
         invalidSizeMessage = ByteBuffer.allocate(0);
 
         deserializer = new MessageDeserializer();
         try {
-            deserializer.deserialize(invalidSizeMessage);
+            deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
         } catch (MessageDeserializationException e) {
             byte minSize = Deencapsulation.getField(MessageDeserializer.class, "BASE_MESSAGE_SIZE");
-            assertEquals(e.getMessage(), String.format("Message size %s should be >= %s", invalidSizeMessage.limit(), minSize));
+            assertEquals(String.format("Message size %s should be >= %s", invalidSizeMessage.limit(), minSize), e.getMessage());
         }
     }
 
     @Test
-    public void deserializationShouldThrowWhenInvalidMessageSize() {
+    public void deserializationShouldThrowIfInvalidMessageSize() {
         ByteBuffer invalidSizeMessage = ByteBuffer.allocate(7);
         invalidSizeMessage.put(VALID_HEADER1);
         invalidSizeMessage.put(VALID_HEADER2);
@@ -192,10 +194,10 @@ public class MessageDeserializerTest {
 
         MessageDeserializer deserializer = new MessageDeserializer();
         try {
-            deserializer.deserialize(invalidSizeMessage);
+            deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
         } catch (MessageDeserializationException e) {
             byte minSize = Deencapsulation.getField(MessageDeserializer.class, "BASE_MESSAGE_SIZE");
-            assertEquals(e.getMessage(), String.format("Message size %s should be >= %s", smallSize, minSize));
+            assertEquals(String.format("Message size %s should be >= %s", smallSize, minSize), e.getMessage());
         }
 
         invalidSizeMessage = ByteBuffer.allocate(8);
@@ -206,15 +208,15 @@ public class MessageDeserializerTest {
         invalidSizeMessage.putInt(64);
 
         try {
-            deserializer.deserialize(invalidSizeMessage);
+            deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
         } catch (MessageDeserializationException e) {
-            assertEquals(e.getMessage(), String.format("Message size in header %s is different that actual size %s", 64,
-                    invalidSizeMessage.limit()));
+            assertEquals(String.format("Message size in header %s is different that actual size %s", 64,
+                    invalidSizeMessage.limit()), e.getMessage());
         }
     }
 
     @Test
-    public void deserializationShouldThrowWhenInvalidCreateSize() {
+    public void deserializationShouldThrowIfInvalidCreateSize() {
         ByteBuffer invalidSizeMessage = ByteBuffer.allocate(8);
         invalidSizeMessage.put(VALID_HEADER1);
         invalidSizeMessage.put(VALID_HEADER2);
@@ -224,15 +226,15 @@ public class MessageDeserializerTest {
 
         MessageDeserializer deserializer = new MessageDeserializer();
         try {
-            deserializer.deserialize(invalidSizeMessage);
+            deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
         } catch (MessageDeserializationException e) {
             byte minSize = Deencapsulation.getField(MessageDeserializer.class, "BASE_CREATE_SIZE");
-            assertEquals(e.getMessage(), String.format("Create message size %s should be >= %s", 8, minSize));
+            assertEquals(String.format("Create message size %s should be >= %s", 8, minSize), e.getMessage());
         }
     }
 
     @Test
-    public void deserializationShouldThrowWhenInvalidUriSizeTooSmall() {
+    public void deserializationShouldThrowIfInvalidUriSizeTooSmall() {
         int size = 17 + DATA_MESSAGE_SOCKET_NAME.length();
         ByteBuffer invalidSizeMessage = ByteBuffer.allocate(size);
         invalidSizeMessage.put(VALID_HEADER1);
@@ -247,14 +249,14 @@ public class MessageDeserializerTest {
 
         MessageDeserializer deserializer = new MessageDeserializer();
         try {
-            deserializer.deserialize(invalidSizeMessage);
+            deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
         } catch (MessageDeserializationException e) {
-            assertEquals(e.getMessage(), "Can not deserialize string arguments.");
+            assertEquals("Can not deserialize string arguments.", e.getMessage());
         }
     }
 
     @Test
-    public void deserializationShouldThrowWhenInvalidUriSizeTooLarge() {
+    public void deserializationShouldThrowIfInvalidUriSizeTooLarge() {
         int size = 17 + DATA_MESSAGE_SOCKET_NAME.length();
         ByteBuffer invalidSizeMessage = ByteBuffer.allocate(size);
         invalidSizeMessage.put(VALID_HEADER1);
@@ -269,14 +271,14 @@ public class MessageDeserializerTest {
 
         MessageDeserializer deserializer = new MessageDeserializer();
         try {
-            deserializer.deserialize(invalidSizeMessage);
+            deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
         } catch (MessageDeserializationException e) {
-            assertEquals(e.getMessage(), "Can not deserialize string arguments.");
+            assertEquals("Can not deserialize string arguments.", e.getMessage());
         }
     }
 
     @Test
-    public void deserializationShouldThrowWhenInvalidArgsSizeTooLarge() {
+    public void deserializationShouldThrowIfInvalidArgsSizeTooLarge() {
         int size = 21 + DATA_MESSAGE_SOCKET_NAME.length() + MODULE_ARGS.length();
         ByteBuffer invalidSizeMessage = ByteBuffer.allocate(size);
         invalidSizeMessage.put(VALID_HEADER1);
@@ -293,9 +295,9 @@ public class MessageDeserializerTest {
 
         MessageDeserializer deserializer = new MessageDeserializer();
         try {
-            deserializer.deserialize(invalidSizeMessage);
+            deserializer.deserialize(invalidSizeMessage, MESSAGE_VERSION);
         } catch (MessageDeserializationException e) {
-            assertEquals(e.getMessage(), "Can not deserialize string arguments.");
+            assertEquals("Can not deserialize string arguments.", e.getMessage());
         }
     }
 }

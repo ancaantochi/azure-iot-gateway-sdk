@@ -13,6 +13,7 @@ class CommunicationEndpoint {
     private final String uri;
     private final NanoLibrary nano;
     private final CommunicationStrategy communicationStrategy;
+    private byte version;
     private int socket;
     private int endpointId;
 
@@ -25,6 +26,14 @@ class CommunicationEndpoint {
         this.communicationStrategy = communicationStrategy;
         this.nano = new NanoLibrary();
         this.uri = communicationStrategy.getEndpointUri(identifier);
+    }
+    
+    public byte getVersion() {
+        return version;
+    }
+
+    public void setVersion(byte version) {
+        this.version = version;
     }
 
     public void connect() throws ConnectionException {
@@ -45,7 +54,7 @@ class CommunicationEndpoint {
             }
         }
 
-        return this.communicationStrategy.deserializeMessage(ByteBuffer.wrap(messageBuffer));
+        return this.communicationStrategy.deserializeMessage(ByteBuffer.wrap(messageBuffer), version);
     }
 
     public void disconnect() {

@@ -9,9 +9,9 @@ import com.microsoft.azure.gateway.core.IGatewayModule;
 public class ModuleConfiguration {
     private final String identifier;
     private final Class<? extends IGatewayModule> moduleClass;
-    private final int version;
+    private final byte version;
 
-    private ModuleConfiguration(String identifier, Class<? extends IGatewayModule> moduleClass, int version) {
+    private ModuleConfiguration(String identifier, Class<? extends IGatewayModule> moduleClass, byte version) {
         this.identifier = identifier;
         this.moduleClass = moduleClass;
         this.version = version;
@@ -25,14 +25,16 @@ public class ModuleConfiguration {
         return moduleClass;
     }
 
-    public int getVersion() {
+    public byte getVersion() {
         return version;
     }
 
     public static class Builder {
+        private final static byte DEFAULT_VERSION = 1;
+
         private String identifier;
         private Class<? extends IGatewayModule> moduleClass;
-        private int version;
+        private byte version;
 
         public Builder() {
         }
@@ -47,7 +49,7 @@ public class ModuleConfiguration {
             return this;
         }
 
-        public Builder setModuleVersion(int version) {
+        public Builder setModuleVersion(byte version) {
             this.version = version;
             return this;
         }
@@ -55,8 +57,11 @@ public class ModuleConfiguration {
         public ModuleConfiguration build() {
             if (this.identifier == null || this.moduleClass == null)
                 throw new IllegalArgumentException("Identifier and module class are required.");
-            if (this.version <= 0)
-                throw new IllegalArgumentException("Version can not have negative value or zero.");
+            if (this.version < 0)
+                throw new IllegalArgumentException("Version can not have negative.");
+            
+            if (this.version == 0)
+                this.version = DEFAULT_VERSION;
 
             return new ModuleConfiguration(this.identifier, this.moduleClass, this.version);
         }

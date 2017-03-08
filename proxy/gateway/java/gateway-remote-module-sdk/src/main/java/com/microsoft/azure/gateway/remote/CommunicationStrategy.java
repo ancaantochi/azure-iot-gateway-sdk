@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 import org.nanomsg.NanoLibrary;
 
 interface CommunicationStrategy {
-    RemoteMessage deserializeMessage(ByteBuffer buffer) throws MessageDeserializationException;
+    RemoteMessage deserializeMessage(ByteBuffer buffer, byte version) throws MessageDeserializationException;
     int getEndpointType(NanoLibrary nano);
     String getEndpointUri(String identifier);
 }

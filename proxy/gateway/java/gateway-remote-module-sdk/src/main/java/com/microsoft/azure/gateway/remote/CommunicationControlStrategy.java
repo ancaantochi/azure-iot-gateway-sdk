@@ -16,9 +16,9 @@ class CommunicationControlStrategy implements CommunicationStrategy {
     }
 
     @Override
-    public RemoteMessage deserializeMessage(ByteBuffer messageBuffer) throws MessageDeserializationException {
+    public RemoteMessage deserializeMessage(ByteBuffer messageBuffer, byte version) throws MessageDeserializationException {
         MessageDeserializer deserializer = new MessageDeserializer();
-        return deserializer.deserialize(messageBuffer);
+        return deserializer.deserialize(messageBuffer, version);
     }
 
     @Override

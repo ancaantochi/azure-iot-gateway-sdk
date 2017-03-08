@@ -22,7 +22,7 @@ class CommunicationDataStrategy implements CommunicationStrategy {
 	}
 
 	@Override
-    public RemoteMessage deserializeMessage(ByteBuffer messageBuffer) throws MessageDeserializationException {
+    public RemoteMessage deserializeMessage(ByteBuffer messageBuffer, byte version) throws MessageDeserializationException {
 		return new DataMessage(messageBuffer.array());
 	}
 

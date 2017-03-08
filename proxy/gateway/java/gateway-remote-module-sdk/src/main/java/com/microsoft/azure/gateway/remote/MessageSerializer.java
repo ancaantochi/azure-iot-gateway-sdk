@@ -16,14 +16,14 @@ class MessageSerializer {
 	// 0x6C comes from (G)ateway control message
 	private static final byte SECOND_MESSAGE_BYTE = (byte) 0x6C;
 
-	public byte[] serializeMessage(int status, int version) {
+	public byte[] serializeMessage(int status, byte version) {
 		byte[] array = new byte[9];
 		ByteBuffer dos = ByteBuffer.wrap(array);
 
 		// Write Header
 		dos.put(FIRST_MESSAGE_BYTE);
 		dos.put(SECOND_MESSAGE_BYTE);
-		dos.put((byte) version);
+		dos.put(version);
 		dos.put((byte) RemoteMessageType.REPLY.getValue());
 		int totalSize = dos.limit();
 		dos.putInt(totalSize);

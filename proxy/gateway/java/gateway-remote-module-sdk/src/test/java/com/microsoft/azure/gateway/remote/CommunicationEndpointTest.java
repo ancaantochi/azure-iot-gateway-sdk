@@ -27,6 +27,7 @@ public class CommunicationEndpointTest {
     private static byte[] messageBuffer = new byte[] {};
     private static int endpointId = 1;
     private static int socket = 0;
+    private final byte version = 1;
     private static MockUp<NanoLibrary> nanoMock;
     private final String identifier = "test";
     
@@ -94,12 +95,12 @@ public class CommunicationEndpointTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void constructorShouldThrowWhenNullIdentifier() {
+    public void constructorShouldThrowIfNullIdentifier() {
         new CommunicationEndpoint(null, strategy);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void constructorShouldThrowWhenNullCommunicationStrategy() {
+    public void constructorShouldThrowIfNullCommunicationStrategy() {
         new CommunicationEndpoint(identifier, null);
     }
 
@@ -118,7 +119,7 @@ public class CommunicationEndpointTest {
     }
 
     @Test(expected = ConnectionException.class)
-    public void connectShouldThrowWhenSocketFails() throws ConnectionException {
+    public void connectShouldThrowIfSocketFails() throws ConnectionException {
         socket = -1;
 
         CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
@@ -126,7 +127,7 @@ public class CommunicationEndpointTest {
     }
 
     @Test(expected = ConnectionException.class)
-    public void connectShouldThrowWhenBindFails() throws ConnectionException {
+    public void connectShouldThrowIfBindFails() throws ConnectionException {
         socket = 0;
         endpointId = -1;
 
@@ -145,7 +146,7 @@ public class CommunicationEndpointTest {
 
         new Verifications() {
             {
-                strategy.deserializeMessage(ByteBuffer.wrap(messageBuffer)); times = 1;
+                strategy.deserializeMessage(ByteBuffer.wrap(messageBuffer), anyByte); times = 1;
             }
         };
     }
@@ -162,7 +163,7 @@ public class CommunicationEndpointTest {
     }
 
     @Test(expected = ConnectionException.class)
-    public void receiveMessageShouldThrowWhenNanofails() throws ConnectionException, MessageDeserializationException {
+    public void receiveMessageShouldThrowIfNanofails() throws ConnectionException, MessageDeserializationException {
         final String identifier = "test";
 
         messageBuffer = null;
@@ -194,7 +195,7 @@ public class CommunicationEndpointTest {
     }
     
     @Test(expected=ConnectionException.class)
-    public void sendMessageShouldThrowWhenMessageNotSent()
+    public void sendMessageShouldThrowIfMessageNotSent()
             throws ConnectionException, MessageDeserializationException {
         final String identifier = "test";
         messageBuffer = new byte[0];
@@ -218,7 +219,7 @@ public class CommunicationEndpointTest {
     }
     
     @Test
-    public void sendMessageAsyncSuccessWhenNoReceiver()
+    public void sendMessageAsyncSuccessIfNoReceiver()
             throws ConnectionException, MessageDeserializationException {
         final String identifier = "test";
         messageBuffer = new byte[0];
@@ -231,7 +232,7 @@ public class CommunicationEndpointTest {
     }
     
     @Test(expected=ConnectionException.class)
-    public void sendMessageAsyncShouldThrowWhenMessageNotSent()
+    public void sendMessageAsyncShouldThrowIfMessageNotSent()
             throws ConnectionException, MessageDeserializationException {
         final String identifier = "test";
         messageBuffer = new byte[0];

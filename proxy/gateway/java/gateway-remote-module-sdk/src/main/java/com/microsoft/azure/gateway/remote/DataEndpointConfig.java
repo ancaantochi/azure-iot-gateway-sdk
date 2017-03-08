@@ -14,10 +14,10 @@ class DataEndpointConfig {
 	}
 
 	public String getId() {
-		return id;
+		return this.id;
 	}
 
 	public int getType() {
-		return type;
+		return this.type;
 	}
 }

@@ -13,7 +13,7 @@ class ControlMessage extends RemoteMessage {
     }
 
     public RemoteMessageType getMessageType() {
-        return messageType;
+        return this.messageType;
     }
 
 }

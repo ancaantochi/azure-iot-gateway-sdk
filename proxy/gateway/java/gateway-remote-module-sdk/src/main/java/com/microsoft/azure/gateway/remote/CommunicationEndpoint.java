@@ -34,64 +34,64 @@ class CommunicationEndpoint {
 
     public RemoteMessage receiveMessage() throws ConnectionException, MessageDeserializationException {
 
-        byte[] messageBuffer = nano.nn_recvbyte(socket, nano.NN_DONTWAIT);
+        byte[] messageBuffer = this.nano.nn_recvbyte(socket, nano.NN_DONTWAIT);
 
         if (messageBuffer == null) {
-            int errn = nano.nn_errno();
-            if (errn == nano.EAGAIN) {
+            int errn = this.nano.nn_errno();
+            if (errn == this.nano.EAGAIN) {
                 return null;
             } else {
-                throw new ConnectionException(String.format("Error: %d - %s\n", errn, nano.nn_strerror(errn)));
+                throw new ConnectionException(String.format("Error: %d - %s\n", errn, this.nano.nn_strerror(errn)));
             }
         }
 
-        return communicationStrategy.deserializeMessage(ByteBuffer.wrap(messageBuffer));
+        return this.communicationStrategy.deserializeMessage(ByteBuffer.wrap(messageBuffer));
     }
 
     public void disconnect() {
-        nano.nn_shutdown(socket, endpointId);
-        nano.nn_close(socket);
+        this.nano.nn_shutdown(socket, endpointId);
+        this.nano.nn_close(socket);
     }
 
     public void sendMessage(byte[] message) throws ConnectionException {
-        int result = nano.nn_sendbyte(socket, message, 0);
+        int result = this.nano.nn_sendbyte(socket, message, 0);
         if (result < 0) {
-            int errn = nano.nn_errno();
-            throw new ConnectionException(String.format("Error: %d - %s\n", errn, nano.nn_strerror(errn)));
+            int errn = this.nano.nn_errno();
+            throw new ConnectionException(String.format("Error: %d - %s\n", errn, this.nano.nn_strerror(errn)));
         }
     }
 
     public boolean sendMessageAsync(byte[] message) throws ConnectionException {
-        int result = nano.nn_sendbyte(socket, message, nano.NN_DONTWAIT);
+        int result = this.nano.nn_sendbyte(socket, message, this.nano.NN_DONTWAIT);
         if (result < 0) {
-            int errn = nano.nn_errno();
-            if (errn == nano.EAGAIN) {
+            int errn = this.nano.nn_errno();
+            if (errn == this.nano.EAGAIN) {
                 return false;
             } else {
-                throw new ConnectionException(String.format("Error: %d - %s\n", errn, nano.nn_strerror(errn)));
+                throw new ConnectionException(String.format("Error: %d - %s\n", errn, this.nano.nn_strerror(errn)));
             }
         }
         return true;
     }
 
     public boolean isControlEndpoint() {
-        return (communicationStrategy instanceof CommunicationControlStrategy);
+        return (this.communicationStrategy instanceof CommunicationControlStrategy);
     }
 
     private void createSocket() throws ConnectionException {
-        socket = nano.nn_socket(nano.AF_SP, communicationStrategy.getEndpointType(nano));
-        if (socket < 0) {
-            throw new ConnectionException(String.format("Error in nn_socket: %s\n", nano.nn_strerror(nano.nn_errno())));
+        this.socket = this.nano.nn_socket(this.nano.AF_SP, this.communicationStrategy.getEndpointType(this.nano));
+        if (this.socket < 0) {
+            throw new ConnectionException(String.format("Error in nn_socket: %s\n", this.nano.nn_strerror(this.nano.nn_errno())));
         }
     }
 
     private void createEndpoint() throws ConnectionException {
-        endpointId = nano.nn_bind(socket, uri);
+        this.endpointId = this.nano.nn_bind(this.socket, this.uri);
 
-        if (endpointId < 0) {
-            int errn = nano.nn_errno();
-            nano.nn_close(socket);
-            throw new ConnectionException(String.format("Error: %d - %s\n", errn, nano.nn_strerror(errn)));
+        if (this.endpointId < 0) {
+            int errn = this.nano.nn_errno();
+            this.nano.nn_close(this.socket);
+            throw new ConnectionException(String.format("Error: %d - %s\n", errn, this.nano.nn_strerror(errn)));
         }
     }
 }

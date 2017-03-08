@@ -13,6 +13,6 @@ class DataMessage extends RemoteMessage {
 	}
 
 	public byte[] getContent() {
-		return content;
+		return this.content;
 	}
 }

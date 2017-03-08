@@ -25,7 +25,7 @@ class BrokerProxy extends Broker {
     @Override
     public int publishMessage(Message message, long moduleAddr) throws IOException {
         try {
-            endpoint.sendMessage(message.toByteArray());
+            this.endpoint.sendMessage(message.toByteArray());
         } catch (ConnectionException e) {
             throw new IOException(e);
         }

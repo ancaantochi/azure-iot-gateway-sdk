@@ -18,7 +18,7 @@ class CommunicationDataStrategy implements CommunicationStrategy {
 
 	@Override
     public int getEndpointType(NanoLibrary nano) {
-		return type;
+		return this.type;
 	}
 
 	@Override

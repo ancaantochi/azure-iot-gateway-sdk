@@ -18,14 +18,14 @@ class CreateMessage extends ControlMessage {
     }
 
     public DataEndpointConfig getDataEndpoint() {
-        return endpointsConfig;
+        return this.endpointsConfig;
     }
 
     public String getArgs() {
-        return args;
+        return this.args;
     }
 
     public int getVersion() {
-        return version;
+        return this.version;
     }
 }

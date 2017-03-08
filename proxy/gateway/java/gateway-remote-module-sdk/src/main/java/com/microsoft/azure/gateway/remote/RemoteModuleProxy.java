@@ -10,6 +10,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.microsoft.azure.gateway.core.Broker;
 import com.microsoft.azure.gateway.core.IGatewayModule;
 
@@ -98,10 +101,9 @@ public class RemoteModuleProxy {
 					}
 				}
 			} catch (ConnectionException e) {
-				e.printStackTrace();
-
+				logger.error(e.toString());
 			} catch (MessageDeserializationException e) {
-				e.printStackTrace();
+				logger.error(e.toString());
 			}
 		}
 
@@ -125,11 +127,11 @@ public class RemoteModuleProxy {
 			try {
 				message = this.controlEndpoint.receiveMessage();
 			} catch (MessageDeserializationException e) {
-				e.printStackTrace();
+				logger.error(e.toString());
 				this.sendControlReplyMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue());
 				this.disconnectDataMessage();
 			} catch (ConnectionException e) {
-				e.printStackTrace();
+				logger.error(e.toString());
 				this.sendControlReplyMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue());
 				this.disconnectDataMessage();
 			}
@@ -142,11 +144,11 @@ public class RemoteModuleProxy {
 						if (!sent)
 							this.disconnectDataMessage();
 					} catch (ConnectionException e) {
-						e.printStackTrace();
+						logger.error(e.toString());
 						this.sendControlReplyMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue());
 						this.disconnectDataMessage();
 					} catch (ModuleInstantiationException e) {
-						e.printStackTrace();
+						logger.error(e.toString());
 						this.sendControlReplyMessage(RemoteModuleResultCode.CREATION_ERROR.getValue());
 						this.disconnectDataMessage();
 					}
@@ -188,16 +190,16 @@ public class RemoteModuleProxy {
 					this.createModuleInstanceNoArgsConstructor(controlMessage, this.dataEndpoint);
 				}
 			} catch (InstantiationException e) {
-				e.printStackTrace();
+				logger.error(e.toString());
 				throw new ModuleInstantiationException("Could not instantiate module", e);
 			} catch (IllegalAccessException e) {
-				e.printStackTrace();
+				logger.error(e.toString());
 				throw new ModuleInstantiationException("Could not instantiate module", e);
 			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
+				logger.error(e.toString());
 				throw new ModuleInstantiationException("Could not instantiate module", e);
 			} catch (InvocationTargetException e) {
-				e.printStackTrace();
+				logger.error(e.toString());
 				throw new ModuleInstantiationException("Could not instantiate module", e);
 			}
 		}
@@ -218,7 +220,7 @@ public class RemoteModuleProxy {
 			try {
 				sent = this.controlEndpoint.sendMessageAsync(createCompletedMessage);
 			} catch (ConnectionException e) {
-				e.printStackTrace();
+				logger.error(e.toString());
 			}
 			return sent;
 		}
@@ -240,7 +242,7 @@ public class RemoteModuleProxy {
 						String.class);
 				this.module = ctor.newInstance(emptyAddress, new BrokerProxy(dataEndpoint), controlMessage.getArgs());
 			} catch (NoSuchMethodException e) {
-				e.printStackTrace();
+				logger.error(e.toString());
 			}
 		}
 

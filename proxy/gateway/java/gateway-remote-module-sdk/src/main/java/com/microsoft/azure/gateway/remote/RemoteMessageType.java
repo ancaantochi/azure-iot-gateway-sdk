@@ -14,7 +14,7 @@ enum RemoteMessageType {
     }
 
     public int getValue() {
-        return value;
+        return this.value;
     }
 
     public static RemoteMessageType fromValue(int value) {

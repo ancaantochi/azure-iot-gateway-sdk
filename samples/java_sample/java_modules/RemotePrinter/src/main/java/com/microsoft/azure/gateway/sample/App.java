@@ -14,7 +14,7 @@ public class App {
         ModuleConfiguration.Builder configBuilder = new ModuleConfiguration.Builder();
         configBuilder.setIdentifier(args[0]);
         configBuilder.setModuleClass(Printer.class);
-        configBuilder.setModuleVersion(1);
+        configBuilder.setModuleVersion((byte) 1);
 
         RemoteModuleProxy moduleProxy = new RemoteModuleProxy(configBuilder.build());
         try {

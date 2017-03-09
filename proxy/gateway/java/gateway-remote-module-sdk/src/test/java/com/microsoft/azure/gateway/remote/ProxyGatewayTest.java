@@ -18,7 +18,7 @@ import org.nanomsg.NanoLibrary;
 
 import com.microsoft.azure.gateway.core.Broker;
 import com.microsoft.azure.gateway.core.IGatewayModule;
-import com.microsoft.azure.gateway.remote.RemoteModuleProxy.MessageListener;
+import com.microsoft.azure.gateway.remote.ProxyGateway.MessageListener;
 
 import mockit.Deencapsulation;
 import mockit.Expectations;
@@ -27,7 +27,7 @@ import mockit.MockUp;
 import mockit.Mocked;
 import mockit.Verifications;
 
-public class RemoteModuleProxyTest {
+public class ProxyGatewayTest {
 
     private final static String identifier = "test";
     private static byte version = 1;
@@ -112,16 +112,16 @@ public class RemoteModuleProxyTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void constructorShouldThrowIfInvalidArguments() {
-        new RemoteModuleProxy(null);
+        new ProxyGateway(null);
     }
 
     @Test
     public void attachSuccessIfAlreadyAttached(@Mocked final CommunicationEndpoint controlEndpoint)
             throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -142,7 +142,7 @@ public class RemoteModuleProxyTest {
     public void attachShouldThrowIfConnectFails(@Mocked final CommunicationEndpoint controlEndpoint)
             throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
         new Expectations() {
             {
@@ -165,9 +165,9 @@ public class RemoteModuleProxyTest {
     public void attachShouldCallStartListening(@Mocked final CommunicationEndpoint controlEndpoint)
             throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -190,9 +190,9 @@ public class RemoteModuleProxyTest {
             @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module)
             throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -249,9 +249,9 @@ public class RemoteModuleProxyTest {
         configBuilder.setModuleClass(TestModuleExtendsAbstractClass.class);
         configBuilder.setModuleVersion(version);
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(configBuilder.build());
+        final ProxyGateway proxy = new ProxyGateway(configBuilder.build());
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -298,9 +298,9 @@ public class RemoteModuleProxyTest {
             @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -321,7 +321,7 @@ public class RemoteModuleProxyTest {
                 controlEndpoint.sendMessageAsync((byte[]) any);
                 result = true;
 
-                serializer.serializeMessage(RemoteModuleResultCode.OK.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.OK.getValue(), anyByte);
 
                 dataEndpoint.connect();
                 dataEndpoint.receiveMessage();
@@ -330,7 +330,7 @@ public class RemoteModuleProxyTest {
         };
 
         proxy.attach();
-        RemoteModuleProxy.MessageListener receiveMessage = proxy.getReceiveMessageListener();
+        ProxyGateway.MessageListener receiveMessage = proxy.getReceiveMessageListener();
         receiveMessage.executeControlMessage();
         receiveMessage.executeDataMessage();
 
@@ -354,7 +354,7 @@ public class RemoteModuleProxyTest {
                 module.destroy();
                 times = 1;
 
-                serializer.serializeMessage(RemoteModuleResultCode.OK.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.OK.getValue(), anyByte);
                 times = 2;
             }
         };
@@ -367,9 +367,9 @@ public class RemoteModuleProxyTest {
             @Mocked final CommunicationEndpoint controlEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -383,7 +383,7 @@ public class RemoteModuleProxyTest {
                 controlEndpoint.receiveMessage();
                 result = new MessageDeserializationException();
 
-                serializer.serializeMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.CONNECTION_ERROR.getValue(), anyByte);
 
                 controlEndpoint.sendMessageAsync((byte[]) any);
                 result = true;
@@ -391,7 +391,7 @@ public class RemoteModuleProxyTest {
         };
 
         proxy.attach();
-        RemoteModuleProxy.MessageListener receiveMessage = proxy.getReceiveMessageListener();
+        ProxyGateway.MessageListener receiveMessage = proxy.getReceiveMessageListener();
         receiveMessage.executeControlMessage();
         receiveMessage.executeDataMessage();
 
@@ -400,7 +400,7 @@ public class RemoteModuleProxyTest {
                 controlEndpoint.connect();
                 times = 1;
 
-                serializer.serializeMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.CONNECTION_ERROR.getValue(), anyByte);
                 times = 1;
 
                 controlEndpoint.sendMessageAsync((byte[]) any);
@@ -419,9 +419,9 @@ public class RemoteModuleProxyTest {
             @Mocked final CommunicationEndpoint controlEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -435,7 +435,7 @@ public class RemoteModuleProxyTest {
                 controlEndpoint.receiveMessage();
                 result = new ConnectionException();
 
-                serializer.serializeMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.CONNECTION_ERROR.getValue(), anyByte);
 
                 controlEndpoint.sendMessageAsync((byte[]) any);
                 result = true;
@@ -443,7 +443,7 @@ public class RemoteModuleProxyTest {
         };
 
         proxy.attach();
-        RemoteModuleProxy.MessageListener receiveMessage = proxy.getReceiveMessageListener();
+        ProxyGateway.MessageListener receiveMessage = proxy.getReceiveMessageListener();
         receiveMessage.executeControlMessage();
         receiveMessage.executeDataMessage();
 
@@ -452,7 +452,7 @@ public class RemoteModuleProxyTest {
                 controlEndpoint.connect();
                 times = 1;
 
-                serializer.serializeMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.CONNECTION_ERROR.getValue(), anyByte);
                 times = 1;
 
                 controlEndpoint.sendMessageAsync((byte[]) any);
@@ -471,9 +471,9 @@ public class RemoteModuleProxyTest {
             @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final MessageSerializer serializer)
             throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -492,7 +492,7 @@ public class RemoteModuleProxyTest {
                 dataEndpoint.connect();
                 result = new ConnectionException();
 
-                serializer.serializeMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.CONNECTION_ERROR.getValue(), anyByte);
 
                 controlEndpoint.sendMessageAsync((byte[]) any);
                 result = true;
@@ -500,7 +500,7 @@ public class RemoteModuleProxyTest {
         };
 
         proxy.attach();
-        RemoteModuleProxy.MessageListener receiveMessage = proxy.getReceiveMessageListener();
+        ProxyGateway.MessageListener receiveMessage = proxy.getReceiveMessageListener();
         receiveMessage.executeControlMessage();
         receiveMessage.executeDataMessage();
 
@@ -509,7 +509,7 @@ public class RemoteModuleProxyTest {
                 controlEndpoint.connect();
                 times = 1;
 
-                serializer.serializeMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.CONNECTION_ERROR.getValue(), anyByte);
                 times = 1;
 
                 controlEndpoint.sendMessageAsync((byte[]) any);
@@ -526,9 +526,9 @@ public class RemoteModuleProxyTest {
             @Mocked final TestModuleImplementsInterface module, @Mocked final MessageSerializer serializer)
             throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -547,7 +547,7 @@ public class RemoteModuleProxyTest {
                 dataEndpoint.receiveMessage();
                 result = null;
 
-                serializer.serializeMessage(RemoteModuleResultCode.CREATION_ERROR.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.CREATION_ERROR.getValue(), anyByte);
 
                 controlEndpoint.sendMessageAsync((byte[]) any);
                 result = true;
@@ -558,7 +558,7 @@ public class RemoteModuleProxyTest {
         };
 
         proxy.attach();
-        RemoteModuleProxy.MessageListener receiveMessage = proxy.getReceiveMessageListener();
+        ProxyGateway.MessageListener receiveMessage = proxy.getReceiveMessageListener();
         receiveMessage.executeControlMessage();
         receiveMessage.executeDataMessage();
 
@@ -567,7 +567,7 @@ public class RemoteModuleProxyTest {
                 controlEndpoint.connect();
                 times = 1;
 
-                serializer.serializeMessage(RemoteModuleResultCode.CREATION_ERROR.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.CREATION_ERROR.getValue(), anyByte);
                 times = 1;
 
                 controlEndpoint.sendMessageAsync((byte[]) any);
@@ -586,9 +586,9 @@ public class RemoteModuleProxyTest {
             @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module)
             throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -647,9 +647,9 @@ public class RemoteModuleProxyTest {
             @Mocked final CommunicationEndpoint dataEndpoint)
             throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -676,9 +676,9 @@ public class RemoteModuleProxyTest {
             @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module)
             throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -716,6 +716,8 @@ public class RemoteModuleProxyTest {
             {
                 controlEndpoint.connect();
                 times = 1;
+                controlEndpoint.disconnect();
+                times = 0;
 
                 controlEndpoint.sendMessageAsync((byte[]) any);
                 times = 1;
@@ -736,9 +738,9 @@ public class RemoteModuleProxyTest {
             @Mocked final CommunicationEndpoint dataEndpoint)
             throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -765,9 +767,9 @@ public class RemoteModuleProxyTest {
             @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -788,7 +790,7 @@ public class RemoteModuleProxyTest {
                 controlEndpoint.sendMessageAsync((byte[]) any);
                 result = true;
 
-                serializer.serializeMessage(RemoteModuleResultCode.OK.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.OK.getValue(), anyByte);
 
                 dataEndpoint.connect();
                 dataEndpoint.receiveMessage();
@@ -797,7 +799,7 @@ public class RemoteModuleProxyTest {
         };
 
         proxy.attach();
-        RemoteModuleProxy.MessageListener receiveMessage = proxy.getReceiveMessageListener();
+        ProxyGateway.MessageListener receiveMessage = proxy.getReceiveMessageListener();
         receiveMessage.executeControlMessage();
         receiveMessage.executeDataMessage();
 
@@ -820,7 +822,7 @@ public class RemoteModuleProxyTest {
                 times = 1;
                 module.receive(content);
 
-                serializer.serializeMessage(RemoteModuleResultCode.OK.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.OK.getValue(), anyByte);
                 times = 1;
             }
         };
@@ -833,9 +835,9 @@ public class RemoteModuleProxyTest {
             @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -856,8 +858,8 @@ public class RemoteModuleProxyTest {
                 controlEndpoint.sendMessageAsync((byte[]) any);
                 result = true;
 
-                serializer.serializeMessage(RemoteModuleResultCode.OK.getValue(), anyByte);
-                serializer.serializeMessage(RemoteModuleResultCode.DETACH.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.OK.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.DETACH.getValue(), anyByte);
 
                 dataEndpoint.connect();
                 dataEndpoint.receiveMessage();
@@ -866,7 +868,7 @@ public class RemoteModuleProxyTest {
         };
 
         proxy.attach();
-        RemoteModuleProxy.MessageListener receiveMessage = proxy.getReceiveMessageListener();
+        ProxyGateway.MessageListener receiveMessage = proxy.getReceiveMessageListener();
         receiveMessage.executeControlMessage();
         receiveMessage.executeDataMessage();
 
@@ -881,6 +883,8 @@ public class RemoteModuleProxyTest {
                 times = 1;
                 controlEndpoint.sendMessageAsync((byte[]) any);
                 times = 2;
+                controlEndpoint.disconnect();
+                times = 1;
 
                 dataEndpoint.connect();
                 times = 1;
@@ -893,10 +897,10 @@ public class RemoteModuleProxyTest {
                 module.destroy();
                 times = 1;
 
-                serializer.serializeMessage(RemoteModuleResultCode.OK.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.OK.getValue(), anyByte);
                 times = 1;
 
-                serializer.serializeMessage(RemoteModuleResultCode.DETACH.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.DETACH.getValue(), anyByte);
                 times = 1;
             }
         };
@@ -910,9 +914,9 @@ public class RemoteModuleProxyTest {
             @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
-        final RemoteModuleProxy proxy = new RemoteModuleProxy(config);
+        final ProxyGateway proxy = new ProxyGateway(config);
 
-        new Expectations(RemoteModuleProxy.class) {
+        new Expectations(ProxyGateway.class) {
             {
                 proxy.startListening();
             }
@@ -933,8 +937,8 @@ public class RemoteModuleProxyTest {
                 controlEndpoint.sendMessageAsync((byte[]) any);
                 result = true;
 
-                serializer.serializeMessage(RemoteModuleResultCode.OK.getValue(), anyByte);
-                serializer.serializeMessage(RemoteModuleResultCode.DETACH.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.OK.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.DETACH.getValue(), anyByte);
 
                 dataEndpoint.connect();
                 dataEndpoint.receiveMessage();
@@ -943,7 +947,7 @@ public class RemoteModuleProxyTest {
         };
 
         proxy.attach();
-        RemoteModuleProxy.MessageListener receiveMessage = proxy.getReceiveMessageListener();
+        ProxyGateway.MessageListener receiveMessage = proxy.getReceiveMessageListener();
         receiveMessage.executeControlMessage();
         receiveMessage.executeDataMessage();
 
@@ -978,10 +982,10 @@ public class RemoteModuleProxyTest {
                 module.destroy();
                 times = 1;
 
-                serializer.serializeMessage(RemoteModuleResultCode.OK.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.OK.getValue(), anyByte);
                 times = 2;
 
-                serializer.serializeMessage(RemoteModuleResultCode.DETACH.getValue(), anyByte);
+                serializer.serializeMessage(RemoteModuleReplyCode.DETACH.getValue(), anyByte);
                 times = 1;
             }
         };

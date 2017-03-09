@@ -8,6 +8,10 @@ import java.nio.ByteBuffer;
 
 import org.nanomsg.NanoLibrary;
 
+/**
+ * An endpoint that is used to communicate with the remote Gateway which uses nanomsg to send and receive messages. 
+ *
+ */
 class CommunicationEndpoint {
 
     private final String uri;
@@ -32,15 +36,32 @@ class CommunicationEndpoint {
         return version;
     }
 
+    /**
+     * Set message version
+     *
+     * @param version
+     */
     public void setVersion(byte version) {
         this.version = version;
     }
 
+    /**
+     * Creates a socket and connects to it.
+     * 
+     */
     public void connect() throws ConnectionException {
         this.createSocket();
         this.createEndpoint();
     }
 
+    /**
+     * Checks if there are new messages to receive. This method does not block, if there is no message it returns immediately.
+     * 
+     * @return Deserialized message
+     *
+     * @throws ConnectionException If there is any error receiving the message from the Gateway 
+     * @throws MessageDeserializationException If the message is not in the expected format.
+     */
     public RemoteMessage receiveMessage() throws ConnectionException, MessageDeserializationException {
 
         byte[] messageBuffer = this.nano.nn_recvbyte(socket, nano.NN_DONTWAIT);
@@ -57,6 +78,7 @@ class CommunicationEndpoint {
         return this.communicationStrategy.deserializeMessage(ByteBuffer.wrap(messageBuffer), version);
     }
 
+    
     public void disconnect() {
         this.nano.nn_shutdown(socket, endpointId);
         this.nano.nn_close(socket);

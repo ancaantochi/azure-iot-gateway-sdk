@@ -4,6 +4,10 @@
  */
 package com.microsoft.azure.gateway.remote;
 
+/**
+ * A Create message that contains the details to connect to the data channel. 
+ *
+ */
 class CreateMessage extends ControlMessage {
 
     private final DataEndpointConfig endpointsConfig;
@@ -17,14 +21,26 @@ class CreateMessage extends ControlMessage {
         this.version = version;
     }
 
+    /**
+     * 
+     * @return The data channel details
+     */
     public DataEndpointConfig getDataEndpoint() {
         return this.endpointsConfig;
     }
 
+    /**
+     * 
+     * @return Module arguments that were configured in the Gateway 
+     */
     public String getArgs() {
         return this.args;
     }
 
+    /**
+     * 
+     * @return Message version from the Gateway
+     */
     public int getVersion() {
         return this.version;
     }

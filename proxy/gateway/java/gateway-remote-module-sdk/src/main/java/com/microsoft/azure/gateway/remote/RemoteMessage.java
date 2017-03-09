@@ -4,5 +4,9 @@
  */
 package com.microsoft.azure.gateway.remote;
 
+/**
+ * Base class for a remote message
+ *
+ */
 class RemoteMessage {
 }

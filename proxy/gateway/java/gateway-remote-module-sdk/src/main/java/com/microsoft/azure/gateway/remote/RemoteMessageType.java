@@ -4,6 +4,10 @@
  */
 package com.microsoft.azure.gateway.remote;
 
+/**
+ * A enumeration of the supported control messages. 
+ *
+ */
 enum RemoteMessageType {
     ERROR(0), CREATE(1), REPLY(2), START(3), DESTROY(4);
 

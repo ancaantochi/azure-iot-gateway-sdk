@@ -4,6 +4,9 @@
  */
 package com.microsoft.azure.gateway.remote;
 
+/**
+ * Thrown to indicate that an instance of the module could not be created.
+ */
 class ModuleInstantiationException extends Exception {
 
     private static final long serialVersionUID = -5305907884031406319L;

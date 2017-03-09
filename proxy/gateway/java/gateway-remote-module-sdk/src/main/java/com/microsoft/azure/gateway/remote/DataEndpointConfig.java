@@ -4,20 +4,34 @@
  */
 package com.microsoft.azure.gateway.remote;
 
+/**
+ * Configuration for the data channel. It contains an identification and a type
+ * that are used to create the communication data channel. These configuration
+ * details are received from the Gateway.
+ *
+ */
 class DataEndpointConfig {
-	private final String id;
-	private final int type;
+    private final String id;
+    private final int type;
 
-	public DataEndpointConfig(String id, int type) {
-		this.id = id;
-		this.type = type;
-	}
+    public DataEndpointConfig(String id, int type) {
+        this.id = id;
+        this.type = type;
+    }
 
-	public String getId() {
-		return this.id;
-	}
+    /**
+     * 
+     * @return Identification
+     */
+    public String getId() {
+        return this.id;
+    }
 
-	public int getType() {
-		return this.type;
-	}
+    /**
+     * 
+     * @return type that represents the communication channel type
+     */
+    public int getType() {
+        return this.type;
+    }
 }

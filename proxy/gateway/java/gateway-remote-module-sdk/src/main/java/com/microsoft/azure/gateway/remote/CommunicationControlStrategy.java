@@ -8,19 +8,37 @@ import java.nio.ByteBuffer;
 
 import org.nanomsg.NanoLibrary;
 
+/**
+ * Communication strategy for control messages to/from from Gateway.
+ *
+ */
 class CommunicationControlStrategy implements CommunicationStrategy {
 
+    /**
+     * Retrieves a specific endpoint type for the control channel
+     *
+     * @return Endpoint type for control channel
+     */
     @Override
     public int getEndpointType(NanoLibrary nano) {
         return nano.NN_PAIR;
     }
 
+    /**
+     * Deserialize the message bytes to a specific control message
+     */
     @Override
-    public RemoteMessage deserializeMessage(ByteBuffer messageBuffer, byte version) throws MessageDeserializationException {
+    public RemoteMessage deserializeMessage(ByteBuffer messageBuffer, byte version)
+            throws MessageDeserializationException {
         MessageDeserializer deserializer = new MessageDeserializer();
         return deserializer.deserialize(messageBuffer, version);
     }
 
+    /**
+     * Constructs the connection uri from control identifier
+     *
+     * @return The constructed connection uri
+     */
     @Override
     public String getEndpointUri(String identifier) {
         return String.format("ipc://%s.ipc", identifier);

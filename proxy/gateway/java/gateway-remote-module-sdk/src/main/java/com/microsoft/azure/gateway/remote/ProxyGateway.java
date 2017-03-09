@@ -17,14 +17,51 @@ import com.microsoft.azure.gateway.core.Broker;
 import com.microsoft.azure.gateway.core.IGatewayModule;
 
 /**
- * A Proxy for the remote module that can attach to the Azure IoT Gateway in order to receive and send messages. 
- * It handles the communication to and from the Gateway and forwards the messages to the module that is an implementation of IGatewayModule interface.
+ * A Proxy for the remote module that can attach to the Azure IoT Gateway to
+ * receive and send messages. The proxy handles creating a module instance and
+ * calls create and start methods from the module. The module that is
+ * instantiated by the proxy is specified in the configuration. It handles the
+ * communication to and from the Gateway and forwards the messages to the
+ * module.
  * 
- * <p>The {@code attach} method is creating a communication channel with the Gateway and starts listening for messages from the Gateway.
- * Once the initialization messages are received from the Gateway it creates an instance of the IGatewayModule, calls create and start on the module and forwards received messages from the Gateway. 
+ * <p>
+ * The {@code attach} method is creating a communication channel with the
+ * Gateway and starts listening for messages from the Gateway. Once the
+ * initialization messages are received from the Gateway it creates an instance
+ * of the IGatewayModule, calls create and start on the module and forwards
+ * received messages from the Gateway. If it receives a destroy message from the
+ * Gateway it calls destroy on the module.
+ * 
+ * <p>
+ * The {@code detach} method stops receiving new messages and sends a notify
+ * message to the Gateway.
+ * 
+ * <h3>Usage Examples</h3>
+ *
+ * Here is how an existing Printer, that implements
+ * {@link com.microsoft.azure.gateway.core.IGatewayModule IGatewayModule}
+ * module, can be run used as a remote module:
+ *
+ * <pre>
+ *  {@code
+ *  String id = "control-id";
+ *  byte version = 1;
+ *  ModuleConfiguration.Builder configBuilder = new ModuleConfiguration.Builder();
+ *  configBuilder.setIdentifier(id);
+ *  configBuilder.setModuleClass(Printer.class);
+ *  configBuilder.setModuleVersion(version);
+ *      
+ *  RemoteModuleProxy moduleProxy = new RemoteModuleProxy(configBuilder.build());
+ *  try {
+ *       moduleProxy.attach();
+ *  } catch (ConnectionException e) {
+ *       e.printStackTrace();
+ *  }
+ * }}
+ * </pre>
  *
  */
-public class RemoteModuleProxy {
+public class ProxyGateway {
 
     private static final int DEFAULT_DELAY_MILLIS = 10;
     private final ModuleConfiguration config;
@@ -33,7 +70,7 @@ public class RemoteModuleProxy {
     private ScheduledExecutorService executor;
     private MessageListener receiveMessageListener;
 
-    public RemoteModuleProxy(ModuleConfiguration configuration) {
+    public ProxyGateway(ModuleConfiguration configuration) {
         if (configuration == null)
             throw new IllegalArgumentException("Configuration can not be null.");
 
@@ -41,9 +78,12 @@ public class RemoteModuleProxy {
     }
 
     /**
-     * Attach the remote module to the Gateway. It creates the communication channel with the Gateway and starts a new thread that is listening for messages.
+     * Attach the remote module to the Gateway. It creates the communication
+     * channel with the Gateway and starts a new thread that is listening for
+     * messages.
      *
-     * @throws ConnectionException if it can not connect to the communication channel
+     * @throws ConnectionException
+     *             If it can not connect to the Gateway communication channel
      */
     public void attach() throws ConnectionException {
         synchronized (lock) {
@@ -57,7 +97,9 @@ public class RemoteModuleProxy {
     }
 
     /**
-     * Detach from the Gateway. The listening of messages from the Gateway is terminated and destroy method on IGatewayModule instance is called.
+     * Detach from the Gateway. The listening of messages from the Gateway is
+     * terminated and destroy method on IGatewayModule instance is called. A
+     * notification message is sent to the Gateway
      */
     public void detach() {
         boolean sendDetachToGateway = true;
@@ -97,7 +139,7 @@ public class RemoteModuleProxy {
 
     class MessageListener implements Runnable {
         private final ModuleConfiguration config;
-        private final Logger logger = LoggerFactory.getLogger(RemoteModuleProxy.class);
+        private final Logger logger = LoggerFactory.getLogger(ProxyGateway.class);
         private CommunicationEndpoint controlEndpoint;
         private CommunicationEndpoint dataEndpoint;
         private IGatewayModule module;
@@ -121,10 +163,19 @@ public class RemoteModuleProxy {
                 this.module.destroy();
 
             if (sendDetachToGateway) {
-                this.sendControlReplyMessage(RemoteModuleResultCode.DETACH.getValue());
+                this.sendControlReplyMessage(RemoteModuleReplyCode.DETACH.getValue());
+
+                try {
+                    // sleep for a second so the Gateway has time to receive the
+                    // message before closing the connection
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                this.controlEndpoint.disconnect();
             }
 
-            this.controlEndpoint.disconnect();
             if (this.dataEndpoint != null)
                 this.dataEndpoint.disconnect();
 
@@ -137,11 +188,11 @@ public class RemoteModuleProxy {
                 message = this.controlEndpoint.receiveMessage();
             } catch (MessageDeserializationException e) {
                 logger.error(e.toString());
-                this.sendControlReplyMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue());
+                this.sendControlReplyMessage(RemoteModuleReplyCode.CONNECTION_ERROR.getValue());
                 this.disconnectDataMessage();
             } catch (ConnectionException e) {
                 logger.error(e.toString());
-                this.sendControlReplyMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue());
+                this.sendControlReplyMessage(RemoteModuleReplyCode.CONNECTION_ERROR.getValue());
                 this.disconnectDataMessage();
             }
             if (message != null) {
@@ -149,16 +200,16 @@ public class RemoteModuleProxy {
                 if (controlMessage.getMessageType() == RemoteMessageType.CREATE) {
                     try {
                         this.processCreateMessage(message, this.controlEndpoint);
-                        boolean sent = sendControlReplyMessage(RemoteModuleResultCode.OK.getValue());
+                        boolean sent = sendControlReplyMessage(RemoteModuleReplyCode.OK.getValue());
                         if (!sent)
                             this.disconnectDataMessage();
                     } catch (ConnectionException e) {
                         logger.error(e.toString());
-                        this.sendControlReplyMessage(RemoteModuleResultCode.CONNECTION_ERROR.getValue());
+                        this.sendControlReplyMessage(RemoteModuleReplyCode.CONNECTION_ERROR.getValue());
                         this.disconnectDataMessage();
                     } catch (ModuleInstantiationException e) {
                         logger.error(e.toString());
-                        this.sendControlReplyMessage(RemoteModuleResultCode.CREATION_ERROR.getValue());
+                        this.sendControlReplyMessage(RemoteModuleReplyCode.CREATION_ERROR.getValue());
                         this.disconnectDataMessage();
                     }
                 }

@@ -9,19 +9,28 @@ import java.io.IOException;
 import com.microsoft.azure.gateway.core.Broker;
 import com.microsoft.azure.gateway.messaging.Message;
 
+/**
+ * A Proxy for the Broker that can send messages to the remote Gateway
+ * 
+ */
 class BrokerProxy extends Broker {
-    private final static long emptyAddress = 0;
     private final CommunicationEndpoint endpoint;
 
     public BrokerProxy(CommunicationEndpoint dataEndpoint) {
-        super(emptyAddress);
-
         if (dataEndpoint == null)
             throw new IllegalArgumentException("Communication endpoint was not initialized.");
 
         this.endpoint = dataEndpoint;
     }
 
+    /**
+     * Sends messages to the remote Gateway via the communication endpoint. This
+     * method blocks until the Gateway receives the message.
+     * 
+     * @return 0 on success
+     * @throws IOException
+     *             if the message serialization fails or if it could not send
+     */
     @Override
     public int publishMessage(Message message, long moduleAddr) throws IOException {
         try {

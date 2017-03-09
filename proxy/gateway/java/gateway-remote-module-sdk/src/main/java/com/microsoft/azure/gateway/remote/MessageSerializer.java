@@ -4,11 +4,12 @@
  */
 package com.microsoft.azure.gateway.remote;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
+/**
+ * Serializer for control messages
+ *
+ */
 class MessageSerializer {
 
 	// 0xA1 comes from (A)zure (I)oT
@@ -16,6 +17,12 @@ class MessageSerializer {
 	// 0x6C comes from (G)ateway control message
 	private static final byte SECOND_MESSAGE_BYTE = (byte) 0x6C;
 
+	/**
+	 * Serialize the control message with status and the version 
+	 * @param status Status to be send to the Gateway. {@see RemoteModuleReplyCode}
+	 * @param version Message version 
+	 * @return
+	 */
 	public byte[] serializeMessage(int status, byte version) {
 		byte[] array = new byte[9];
 		ByteBuffer dos = ByteBuffer.wrap(array);

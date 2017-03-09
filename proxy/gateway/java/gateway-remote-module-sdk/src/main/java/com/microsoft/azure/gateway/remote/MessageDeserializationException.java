@@ -4,6 +4,10 @@
  */
 package com.microsoft.azure.gateway.remote;
 
+/**
+ * Thrown to indicate that the message retrieved from the Gateway can not be
+ * deserialized.
+ */
 class MessageDeserializationException extends Exception {
 
 	private static final long serialVersionUID = 375190278270633771L;

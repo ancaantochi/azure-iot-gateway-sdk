@@ -4,12 +4,16 @@
  */
 package com.microsoft.azure.gateway.remote;
 
-enum RemoteModuleResultCode {
+/**
+ * An enumeration of the supported reply statuses 
+ *
+ */
+enum RemoteModuleReplyCode {
     DETACH(-1), OK(0), CONNECTION_ERROR(1), CREATION_ERROR(2);
 
     private final int value;
 
-    private RemoteModuleResultCode(int value) {
+    private RemoteModuleReplyCode(int value) {
         this.value = value;
     }
 

@@ -6,6 +6,10 @@ package com.microsoft.azure.gateway.remote;
 
 import java.nio.ByteBuffer;
 
+/**
+ * Deserializer for a Gateway message. The messages from the Gateway are received as an array of bytes in a specific format. 
+ * 
+ */
 class MessageDeserializer {
 
     // 0xA1 comes from (A)zure (I)oT
@@ -15,6 +19,15 @@ class MessageDeserializer {
     private static final byte BASE_MESSAGE_SIZE = 8;
     private static final byte BASE_CREATE_SIZE = BASE_MESSAGE_SIZE + 10;
 
+    /**
+     * Deserializes the message and constructs a {@link ControlMessage}.
+     *
+     * @param messageBuffer The message content
+     * @param version The message version that should be parsed.
+     *
+     * @return
+     * @throws MessageDeserializationException If the message is malformed.
+     */
     public RemoteMessage deserialize(ByteBuffer messageBuffer, byte version) throws MessageDeserializationException {
         RemoteMessageType msgType = null;
         int totalSize = 0;

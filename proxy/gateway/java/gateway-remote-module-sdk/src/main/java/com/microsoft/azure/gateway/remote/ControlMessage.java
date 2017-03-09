@@ -4,6 +4,11 @@
  */
 package com.microsoft.azure.gateway.remote;
 
+/**
+ * A control message that can represent a Create, Start, Destroy message
+ * See {@link RemoteMessageType} for supported types.
+ *
+ */
 class ControlMessage extends RemoteMessage {
 
     private RemoteMessageType messageType;

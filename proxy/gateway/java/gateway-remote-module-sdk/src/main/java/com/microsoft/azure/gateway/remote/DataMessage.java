@@ -4,15 +4,19 @@
  */
 package com.microsoft.azure.gateway.remote;
 
+/**
+ * An object that represents a data message received from the Gateway.
+ *
+ */
 class DataMessage extends RemoteMessage {
 
-	private final byte[] content;
+    private final byte[] content;
 
-	public DataMessage(byte[] content) {
-		this.content = content;
-	}
+    public DataMessage(byte[] content) {
+        this.content = content;
+    }
 
-	public byte[] getContent() {
-		return this.content;
-	}
+    public byte[] getContent() {
+        return this.content;
+    }
 }

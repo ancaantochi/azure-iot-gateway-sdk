@@ -4,7 +4,7 @@
 
   <groupId>com.microsoft.azure.gateway</groupId>
   <artifactId>sample-printer-module-remote</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>1.0.0</version>
   <packaging>jar</packaging>
 
 

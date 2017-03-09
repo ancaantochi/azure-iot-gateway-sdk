@@ -4,19 +4,20 @@ import java.io.IOException;
 
 import com.microsoft.azure.gateway.remote.ConnectionException;
 import com.microsoft.azure.gateway.remote.ModuleConfiguration;
-import com.microsoft.azure.gateway.remote.RemoteModuleProxy;
+import com.microsoft.azure.gateway.remote.ProxyGateway;
 
 public class App {
     public static void main(String[] args) {
         if (args.length < 1)
             throw new IllegalArgumentException("Please provide the control message identifier");
 
+        byte version = 1;
         ModuleConfiguration.Builder configBuilder = new ModuleConfiguration.Builder();
         configBuilder.setIdentifier(args[0]);
         configBuilder.setModuleClass(Printer.class);
-        configBuilder.setModuleVersion((byte) 1);
+        configBuilder.setModuleVersion(version);
 
-        RemoteModuleProxy moduleProxy = new RemoteModuleProxy(configBuilder.build());
+        ProxyGateway moduleProxy = new ProxyGateway(configBuilder.build());
         try {
             moduleProxy.attach();
         } catch (ConnectionException e) {

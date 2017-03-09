@@ -4,9 +4,8 @@
  */
 package com.microsoft.azure.gateway.remote;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -27,7 +26,6 @@ public class CommunicationEndpointTest {
     private static byte[] messageBuffer = new byte[] {};
     private static int endpointId = 1;
     private static int socket = 0;
-    private final byte version = 1;
     private static MockUp<NanoLibrary> nanoMock;
     private final String identifier = "test";
     

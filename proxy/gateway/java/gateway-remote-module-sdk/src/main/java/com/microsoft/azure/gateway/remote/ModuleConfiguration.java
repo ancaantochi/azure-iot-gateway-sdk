@@ -14,7 +14,8 @@ import com.microsoft.azure.gateway.core.IGatewayModule;
  * the messages version that has to be compatible with the message version the
  * Gateway is sending. Default value is set to 1.
  * 
- * To create an instance of the configuration use the Builder:
+ * {@code ModuleConfiguration} has no public constructor. To create an instance
+ * of the configuration use the {@code ModuleConfiguration.Builder}:
  * 
  * <pre>
  *  {@code
@@ -35,20 +36,24 @@ public class ModuleConfiguration {
     private final Class<? extends IGatewayModule> moduleClass;
     private final byte version;
 
+    // Codes_SRS_MODULE_CONFIGURATION_24_001: [ ModuleConfiguration shall not have a private constructor . ]
     private ModuleConfiguration(String identifier, Class<? extends IGatewayModule> moduleClass, byte version) {
         this.identifier = identifier;
         this.moduleClass = moduleClass;
         this.version = version;
     }
 
+    // Codes_SRS_MODULE_CONFIGURATION_24_003: [ It shall return the control channel identification. ]
     public String getIdentifier() {
         return identifier;
     }
 
+    // Codes_SRS_MODULE_CONFIGURATION_24_004: [ It shall return the module class. ]
     public Class<? extends IGatewayModule> getModuleClass() {
         return moduleClass;
     }
 
+    // Codes_SRS_MODULE_CONFIGURATION_24_005: [ It shall return the version. ]
     public byte getVersion() {
         return version;
     }
@@ -57,6 +62,7 @@ public class ModuleConfiguration {
      * A builder for {@code ModuleConfiguration}.
      *
      */
+    // Codes_SRS_MODULE_CONFIGURATION_24_002: [ ModuleConfiguration shall have a Builder that creates new instances of ModuleConfiguration . ]
     public static class Builder {
         private final static byte DEFAULT_VERSION = 1;
 
@@ -67,16 +73,19 @@ public class ModuleConfiguration {
         public Builder() {
         }
 
+        // Codes_SRS_MODULE_CONFIGURATION_BUILDER_24_006: [ It shall save `moduleClass` into member field.  ]
         public Builder setModuleClass(Class<? extends IGatewayModule> moduleClass) {
             this.moduleClass = moduleClass;
             return this;
         }
 
+        // Codes_SRS_MODULE_CONFIGURATION_BUILDER_24_007: [ It shall save `identifier` into member field.  ]
         public Builder setIdentifier(String identifier) {
             this.identifier = identifier;
             return this;
         }
 
+        // Codes_SRS_MODULE_CONFIGURATION_BUILDER_24_008: [ It shall save `version` into member field.  ]
         public Builder setModuleVersion(byte version) {
             this.version = version;
             return this;
@@ -90,14 +99,20 @@ public class ModuleConfiguration {
          *             version is negative
          */
         public ModuleConfiguration build() {
+            // Codes_SRS_MODULE_CONFIGURATION_BUILDER_24_010: [ If identifier is null it shall throw IllegalArgumentException. ]
+            // Codes_SRS_MODULE_CONFIGURATION_BUILDER_24_011: [ If moduleClass is null it shall throw IllegalArgumentException. ]
             if (this.identifier == null || this.moduleClass == null)
                 throw new IllegalArgumentException("Identifier and module class are required.");
+            
+            // Codes_SRS_MODULE_CONFIGURATION_BUILDER_24_012: [ If version is negative it shall throw IllegalArgumentException. ]
             if (this.version < 0)
                 throw new IllegalArgumentException("Version can not have negative.");
-
+                
+            // Codes_SRS_MODULE_CONFIGURATION_BUILDER_24_013: [ If version is not set it shall use default version. ]   
             if (this.version == 0)
                 this.version = DEFAULT_VERSION;
 
+            // Codes_SRS_MODULE_CONFIGURATION_BUILDER_24_009: [ It shall create a new ModuleConfiguration instance. ]
             return new ModuleConfiguration(this.identifier, this.moduleClass, this.version);
         }
     }

@@ -71,9 +71,11 @@ public class ProxyGateway {
     private MessageListener receiveMessageListener;
 
     public ProxyGateway(ModuleConfiguration configuration) {
+        //Codes_SRS_JAVA_PROXY_GATEWAY_24_001: [ If `config` is `null` the constructor shall throw an IllegalArgumentException. ]
         if (configuration == null)
             throw new IllegalArgumentException("Configuration can not be null.");
 
+        //Codes_SRS_JAVA_PROXY_GATEWAY_24_002: [ The constructor shall save `config` into member field. ]
         this.config = configuration;
     }
 
@@ -87,10 +89,14 @@ public class ProxyGateway {
      */
     public void attach() throws ConnectionException {
         synchronized (lock) {
+            //Codes_SRS_JAVA_PROXY_GATEWAY_24_003: [ If already attached the function shall do nothing and return. ]
             if (!this.isAttached) {
                 this.isAttached = true;
+                //Codes_SRS_JAVA_PROXY_GATEWAY_24_004: [ The function shall instantiate the messages listener task. ]
                 this.receiveMessageListener = new MessageListener(config);
+                //Codes_SRS_JAVA_PROXY_GATEWAY_24_005: [ It shall instantiate a single-threaded executor that can schedule the task to execute periodically. ]
                 this.executor = Executors.newSingleThreadScheduledExecutor();
+                //Codes_SRS_JAVA_PROXY_GATEWAY_24_006: [ It shall start executing the periodic task of listening for messages from the Gateway. ]
                 this.startListening();
             }
         }
@@ -99,7 +105,7 @@ public class ProxyGateway {
     /**
      * Detach from the Gateway. The listening of messages from the Gateway is
      * terminated and destroy method on IGatewayModule instance is called. A
-     * notification message is sent to the Gateway
+     * notification message is sent to the Gateway.
      */
     public void detach() {
         boolean sendDetachToGateway = true;
@@ -124,9 +130,12 @@ public class ProxyGateway {
 
     private void detach(boolean sendDetachToGateway) {
         synchronized (lock) {
+            // Codes_SRS_JAVA_PROXY_GATEWAY_24_028: [ If not attached the function shall do nothing and return. ]
             if (this.isAttached) {
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_029: [ Attempts to stop the message listening tasks. ]
                 this.executor.shutdownNow();
                 try {
+                    // Codes_SRS_JAVA_PROXY_GATEWAY_24_030: [ It shall wait for a minute for executing task to terminate. ]
                     executor.awaitTermination(60, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                 }
@@ -146,9 +155,12 @@ public class ProxyGateway {
 
         public MessageListener(ModuleConfiguration config) throws ConnectionException {
             this.config = config;
+            // Codes_SRS_JAVA_PROXY_GATEWAY_24_007: [ *Message Listener task* - It shall create a new control channel with the Gateway. ]
             this.controlEndpoint = new CommunicationEndpoint(this.config.getIdentifier(),
                     new CommunicationControlStrategy());
             this.controlEndpoint.setVersion(this.config.getVersion());
+            // Codes_SRS_JAVA_PROXY_GATEWAY_24_008: [ *Message Listener task* - It shall connect to the control channel. ]
+            // Codes_SRS_JAVA_PROXY_GATEWAY_24_009: [ *Message Listener task* - If the connection with the control channel fails, it shall throw ConnectionException. ]
             this.controlEndpoint.connect();
         }
 
@@ -160,9 +172,12 @@ public class ProxyGateway {
 
         public void detach(boolean sendDetachToGateway) {
             if (this.module != null)
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_023: [ *Message Listener task - Destroy message* - If message type is DESTROY, it shall call module `destroy` method. ]
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_031: [ It shall call module destroy. ]
                 this.module.destroy();
 
             if (sendDetachToGateway) {
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_032: [ It shall attempt to notify the Gateway of the detachment. ]
                 this.sendControlReplyMessage(RemoteModuleReplyCode.DETACH.getValue());
 
                 try {
@@ -170,12 +185,14 @@ public class ProxyGateway {
                     // message before closing the connection
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
                 }
 
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_033: [It shall disconnect from the Gateway control channel. ]
                 this.controlEndpoint.disconnect();
             }
 
+            // Codes_SRS_JAVA_PROXY_GATEWAY_24_024: [ *Message Listener task - Destroy message* - If message type is DESTROY, it shall disconnect from the message channel. ]
+            // Codes_SRS_JAVA_PROXY_GATEWAY_24_034: [It shall disconnect from the Gateway message channel. ]
             if (this.dataEndpoint != null)
                 this.dataEndpoint.disconnect();
 
@@ -185,32 +202,35 @@ public class ProxyGateway {
         void executeControlMessage() {
             RemoteMessage message = null;
             try {
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_010: [ *Message Listener task* - It shall poll the gateway control channel for new messages. ]
                 message = this.controlEndpoint.receiveMessage();
             } catch (MessageDeserializationException e) {
                 logger.error(e.toString());
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_012: [ *Message Listener task* - If a control message is received and deserialization fails it shall send an error message to the Gateway. ]
                 this.sendControlReplyMessage(RemoteModuleReplyCode.CONNECTION_ERROR.getValue());
-                this.disconnectDataMessage();
             } catch (ConnectionException e) {
                 logger.error(e.toString());
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_013: [ *Message Listener task* - If there is an error receiving the control message it shall send an error message to the Gateway. ]
                 this.sendControlReplyMessage(RemoteModuleReplyCode.CONNECTION_ERROR.getValue());
-                this.disconnectDataMessage();
             }
+            // Codes_SRS_JAVA_PROXY_GATEWAY_24_011: [ *Message Listener task* - If no message is available the listener shall do nothing. ]
             if (message != null) {
                 ControlMessage controlMessage = (ControlMessage) message;
                 if (controlMessage.getMessageType() == RemoteMessageType.CREATE) {
                     try {
+                        // Codes_SRS_JAVA_PROXY_GATEWAY_24_014: [ *Message Listener task* - If the message type is CREATE, it shall process the create message ]
                         this.processCreateMessage(message, this.controlEndpoint);
+                        // Codes_SRS_JAVA_PROXY_GATEWAY_24_020: [ *Message Listener task - Create message* - If the Create message finished processing, it shall send an ok message to the Gateway. ]
                         boolean sent = sendControlReplyMessage(RemoteModuleReplyCode.OK.getValue());
+                        // Codes_SRS_JAVA_PROXY_GATEWAY_24_021: [ *Message Listener task - Create message* - If ok message fails to be send to the Gateway, it shall do call module `destroy` and disconnect from message channel. ]
                         if (!sent)
                             this.disconnectDataMessage();
                     } catch (ConnectionException e) {
                         logger.error(e.toString());
                         this.sendControlReplyMessage(RemoteModuleReplyCode.CONNECTION_ERROR.getValue());
-                        this.disconnectDataMessage();
                     } catch (ModuleInstantiationException e) {
                         logger.error(e.toString());
                         this.sendControlReplyMessage(RemoteModuleReplyCode.CREATION_ERROR.getValue());
-                        this.disconnectDataMessage();
                     }
                 }
 
@@ -226,9 +246,12 @@ public class ProxyGateway {
 
         void executeDataMessage() {
             try {
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_025: [ *Message Listener task - Data message* - It shall not check for messages, if the message channel is not available. ]
                 if (this.dataEndpoint != null) {
                     RemoteMessage dataMessage = this.dataEndpoint.receiveMessage();
+                    // Codes_SRS_JAVA_PROXY_GATEWAY_24_027: [ *Message Listener task - Data message* - If no data message is received or if an error occurs, it shall do nothing. ]
                     if (dataMessage != null) {
+                        // Codes_SRS_JAVA_PROXY_GATEWAY_24_026: [ *Message Listener task - Data message* - If data message is received, it shall forward it to the module by calling `receive` method. ]
                         this.module.receive(((DataMessage) dataMessage).getContent());
                     }
                 }
@@ -247,6 +270,7 @@ public class ProxyGateway {
             if (this.module == null)
                 return;
 
+            // Codes_SRS_JAVA_PROXY_GATEWAY_24_022: [ *Message Listener task - Start message* - If message type is START, it shall call module `start` method. ]
             this.module.start();
         }
 
@@ -255,9 +279,12 @@ public class ProxyGateway {
             this.disconnectDataMessage();
 
             CreateMessage controlMessage = (CreateMessage) message;
+            // Codes_SRS_JAVA_PROXY_GATEWAY_24_015: [ *Message Listener task - Create message* - Create message processing shall create the data message channel and connect to it. ]
+            // Codes_SRS_JAVA_PROXY_GATEWAY_24_016: [ *Message Listener task - Create message* - If connection to the message channel fails, it shall send an error message to the Gateway. ]
             this.dataEndpoint = this.createDataEndpoints(controlMessage.getDataEndpoint());
 
             try {
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_018: [ *Message Listener task - Create message* - Create message processing shall create a module instance and call `create` method. ]
                 this.createModuleInstanceWithArgsConstructor(controlMessage, this.dataEndpoint);
 
                 if (this.module == null) {
@@ -265,15 +292,19 @@ public class ProxyGateway {
                 }
             } catch (InstantiationException e) {
                 logger.error(e.toString());
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_019: [ *Message Listener task - Create message* - If module instance creation fails, it shall send an error message to the Gateway. ]
                 throw new ModuleInstantiationException("Could not instantiate module", e);
             } catch (IllegalAccessException e) {
                 logger.error(e.toString());
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_019: [ *Message Listener task - Create message* - If module instance creation fails, it shall send an error message to the Gateway. ]
                 throw new ModuleInstantiationException("Could not instantiate module", e);
             } catch (IllegalArgumentException e) {
                 logger.error(e.toString());
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_019: [ *Message Listener task - Create message* - If module instance creation fails, it shall send an error message to the Gateway. ]
                 throw new ModuleInstantiationException("Could not instantiate module", e);
             } catch (InvocationTargetException e) {
                 logger.error(e.toString());
+                // Codes_SRS_JAVA_PROXY_GATEWAY_24_019: [ *Message Listener task - Create message* - If module instance creation fails, it shall send an error message to the Gateway. ]
                 throw new ModuleInstantiationException("Could not instantiate module", e);
             }
         }

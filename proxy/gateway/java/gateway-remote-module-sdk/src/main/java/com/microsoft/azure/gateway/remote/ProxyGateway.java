@@ -19,10 +19,10 @@ import com.microsoft.azure.gateway.core.IGatewayModule;
 /**
  * A Proxy for the remote module that can attach to the Azure IoT Gateway to
  * receive and send messages. The proxy handles creating a module instance and
- * calls create and start methods from the module. The module that is
- * instantiated by the proxy is specified in the configuration. It handles the
+ * calls create and start methods from the module and handles the
  * communication to and from the Gateway and forwards the messages to the
- * module.
+ * module. The module that is instantiated by the proxy is specified in the 
+ * configuration.
  * 
  * <p>
  * The {@code attach} method is creating a communication channel with the

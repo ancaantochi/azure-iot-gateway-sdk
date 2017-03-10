@@ -3,11 +3,11 @@ Java Proxy Gateway Requirements
 
 ## Overview
 
-This is the documentation for a remote module that communicates with other modules through the Azure IoT Gateway. Remote modules need to implement `IGatewayModule` interface or extend `GatewayModule` abstract class. Each remote module will additionally need to attach and detach from the gateway.
+This is the API documentation for a remote module that communicates with other modules through the Azure IoT Gateway. Remote modules need to implement `IGatewayModule` interface or extend `GatewayModule` abstract class. Each remote module will additionally need to `attach` and `detach` from the gateway.
 
 ## References
 
-[Java Binding High Level Design Diagram](../../../../bindings/java/devdoc/java_binding_hld.md)
+[Java Binding High Level Design](../../../../bindings/java/devdoc/java_binding_hld.md)
 
 ## Exposed API
 
@@ -31,8 +31,7 @@ public ProxyGateway(ModuleConfiguration config);
 ## attach
 
 Attach the remote module to the Gateway. It creates the communication channel with the Gateway and starts a new thread that is listening for messages from the Gateway. 
-The Gateway shall initially send a 'CREATE' message which contains the detail for creating the message channel and module arguments. Once the create message is
-received the ProxyGateway shall create a new instance of the module, call create method from the module and create the data messages channel. When the initialization is done, ProxyGateway shall send a notification message to the Gateway. When the Gateway sends a `START` message, GatewayProxy shall call modul `start` so the module can start listning for messages from other modules or send messages.
+When the Gateway sends a 'CREATE' message which contains the detail for creating the message channel and module arguments, ProxyGateway shall create a new instance of the module, call create method from the module and create the message channel. When the initialization is done, ProxyGateway shall send a notification message to the Gateway. When the Gateway sends a `START` message, GatewayProxy shall call module `start` so the module can start listening for messages from other modules or send messages to other modules.
 
 ```java
 public void attach();
@@ -62,7 +61,7 @@ public void attach();
 
 **SRS_JAVA_PROXY_GATEWAY_24_014: [** *Message Listener task* - If the message type is CREATE, it shall process the create message **]**
 
-**SRS_JAVA_PROXY_GATEWAY_24_015: [** *Message Listener task - Create message* - Create message processing shall create the data message channel and connect to it. **]**
+**SRS_JAVA_PROXY_GATEWAY_24_015: [** *Message Listener task - Create message* - Create message processing shall create the message channel and connect to it. **]**
 
 **SRS_JAVA_PROXY_GATEWAY_24_016: [** *Message Listener task - Create message* - If connection to the message channel fails, it shall send an error message to the Gateway. **]**
 

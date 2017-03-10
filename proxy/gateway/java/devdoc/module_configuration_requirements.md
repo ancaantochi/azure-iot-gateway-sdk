@@ -3,7 +3,11 @@ Module Configuration Requirements
 
 ## Overview
 
-A remote module configuration that should contain the identifier used to connect to the Gateway, the module class and the message version. The identifier has to be the same value that was configured on the Gateway side. The module class has to be an implementation of IGatewayModule. Version is the messages version that has to be compatible with the message version the Gateway is sending. Default value is set to 1.
+A remote module configuration that should contain the identifier used to connect to the Gateway, the module class and the message version. The identifier has to be the same value that was configured on the Gateway side (more details about configuration can be found in Java Binding High Level Design). The module class has to be an implementation of IGatewayModule. Version is the messages version that has to be compatible with the message version the Gateway is sending. Default value is set to 1.
+
+## References
+
+[Java Binding High Level Design](../../../../bindings/java/devdoc/java_binding_hld.md)
 
 ## Exposed API
 
@@ -37,7 +41,7 @@ private ProxyGateway(/* ... */);
 public String getIdentifier();
 ```
 
-**SRS_MODULE_CONFIGURATION_24_003: [** It shall return the control channel idenitfication. **]**
+**SRS_MODULE_CONFIGURATION_24_003: [** It shall return the control channel identification. **]**
 
 ## getModuleClass
 ```java

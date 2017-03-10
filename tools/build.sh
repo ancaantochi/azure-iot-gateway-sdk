@@ -140,15 +140,15 @@ then
 fi
 
 if [[ $enable_java_remote_modules == ON ]]
-then
-    "$build_root"/tools/build_java_oop.sh
-    [ $? -eq 0 ] || exit $?
-    
+then 
     if [[ $enable_java_binding == OFF ]]
     then
         "$build_root"/tools/build_java.sh
         [ $? -eq 0 ] || exit $?
     fi
+
+     "$build_root"/tools/build_java_oop.sh
+    [ $? -eq 0 ] || exit $?
 fi
 
 if [[ $enable_dotnet_core_binding == ON ]]

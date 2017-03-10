@@ -108,13 +108,15 @@ goto args-continue
 
 :arg-enable-java-remote-modules
 set enable-java-remote-modules=ON
-call %current-path%\build_java_oop.cmd
-if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 
 if "%enable-java-binding%" == "OFF" (
     call %current-path%\build_java.cmd
     if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 )
+
+call %current-path%\build_java_oop.cmd
+if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
+
 goto args-continue
 
 :arg-system-deps-path

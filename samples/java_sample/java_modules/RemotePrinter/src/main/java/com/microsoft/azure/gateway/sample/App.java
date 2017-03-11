@@ -22,22 +22,15 @@ public class App {
             moduleProxy.attach();
         } catch (ConnectionException e) {
             e.printStackTrace();
-        }
+        }        
         
         try {
-            Thread.sleep(30000);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
+            System.out.println("Press ENTER to stop");
+            System.in.read();
+        } catch (IOException e) {
             e.printStackTrace();
         }
         
         moduleProxy.detach();
-        
-        try {
-            System.in.read();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
     }
 }

@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 import org.nanomsg.NanoLibrary;
 
 /**
- * Communication strategy for control messages to/from from Gateway.
+ * Communication strategy for control messages to/from Gateway.
  *
  */
 class CommunicationControlStrategy implements CommunicationStrategy {

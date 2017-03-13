@@ -23,7 +23,7 @@ class CommunicationEndpoint {
 
     public CommunicationEndpoint(String identifier, CommunicationStrategy communicationStrategy) {
         if (identifier == null)
-            throw new IllegalArgumentException("Idenitfier can not be null");
+            throw new IllegalArgumentException("Identifier can not be null");
         if (communicationStrategy == null)
             throw new IllegalArgumentException("Communication strategy can not be null");
 

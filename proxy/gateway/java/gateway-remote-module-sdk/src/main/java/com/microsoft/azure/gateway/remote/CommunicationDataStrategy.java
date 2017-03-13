@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 import org.nanomsg.NanoLibrary;
 
 /**
- * Communication strategy for data messages from from Gateway.
+ * Communication strategy for data messages from the Gateway.
  *
  */
 class CommunicationDataStrategy implements CommunicationStrategy {
@@ -30,7 +30,7 @@ class CommunicationDataStrategy implements CommunicationStrategy {
 	}
 
 	/**
-	 * @return deserilized data message
+	 * @return deserialized data message
 	 */
 	@Override
     public RemoteMessage deserializeMessage(ByteBuffer messageBuffer, byte version) throws MessageDeserializationException {

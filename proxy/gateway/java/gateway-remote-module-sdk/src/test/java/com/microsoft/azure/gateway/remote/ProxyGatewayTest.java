@@ -12,7 +12,6 @@ import java.util.Map;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.nanomsg.NanoLibrary;
 
 import com.microsoft.azure.gateway.core.Broker;
 import com.microsoft.azure.gateway.remote.ProxyGateway.MessageListener;
@@ -48,62 +47,62 @@ public class ProxyGatewayTest {
 
         config = configBuilder.build();
 
-        new MockUp<NanoLibrary>() {
-            @Mock
-            int nn_socket(int i, int j) {
-                return 0;
-            }
-
-            @Mock
-            public int nn_errno() {
-                return 1;
-            }
-
-            @Mock
-            public String nn_strerror(int errnum) {
-                return "Error " + errnum;
-            }
-
-            @Mock
-            int nn_bind(int socket, String uri) {
-                return 1;
-            }
-
-            @Mock
-            void ensureNativeCode() {
-            }
-
-            @Mock
-            int load_symbols(Map<String, Integer> map) {
-                map.put("NN_PAIR", 16);
-                return 0;
-            }
-
-            @Mock
-            int get_symbol(String name) {
-                return 1;
-            }
-
-            @Mock
-            public int nn_shutdown(int socket, int how) {
-                return 0;
-            }
-
-            @Mock
-            public int nn_close(int socket) {
-                return 0;
-            }
-
-            @Mock
-            public byte[] nn_recvbyte(int socket, int flags) {
-                return messageBuffer;
-            }
-
-            @Mock
-            public int nn_sendbyte(int socket, byte[] str, int flags) {
-                return 0;
-            }
-        };
+//        new MockUp<NanomsgLibrary>() {
+//            @Mock
+//            int nn_socket(int i, int j) {
+//                return 0;
+//            }
+//
+//            @Mock
+//            public int nn_errno() {
+//                return 1;
+//            }
+//
+//            @Mock
+//            public String nn_strerror(int errnum) {
+//                return "Error " + errnum;
+//            }
+//
+//            @Mock
+//            int nn_bind(int socket, String uri) {
+//                return 1;
+//            }
+//
+//            @Mock
+//            void ensureNativeCode() {
+//            }
+//
+//            @Mock
+//            int load_symbols(Map<String, Integer> map) {
+//                map.put("NN_PAIR", 16);
+//                return 0;
+//            }
+//
+//            @Mock
+//            int get_symbol(String name) {
+//                return 1;
+//            }
+//
+//            @Mock
+//            public int nn_shutdown(int socket, int how) {
+//                return 0;
+//            }
+//
+//            @Mock
+//            public int nn_close(int socket) {
+//                return 0;
+//            }
+//
+//            @Mock
+//            public byte[] nn_recvbyte(int socket, int flags) {
+//                return messageBuffer;
+//            }
+//
+//            @Mock
+//            public int nn_sendbyte(int socket, byte[] str, int flags) {
+//                return 0;
+//            }
+//        };
     }
 
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_001: [ If `config` is `null` the constructor shall throw an IllegalArgumentException. ]

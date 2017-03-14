@@ -6,10 +6,8 @@ package com.microsoft.azure.gateway.remote;
 
 import java.nio.ByteBuffer;
 
-import org.nanomsg.NanoLibrary;
-
 interface CommunicationStrategy {
     RemoteMessage deserializeMessage(ByteBuffer buffer, byte version) throws MessageDeserializationException;
-    int getEndpointType(NanoLibrary nano);
+    int getEndpointType();
     String getEndpointUri(String identifier);
 }

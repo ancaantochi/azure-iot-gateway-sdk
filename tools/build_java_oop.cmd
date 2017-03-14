@@ -13,30 +13,30 @@ set build-root=%current-path%\..
 rem // resolve to fully qualified path
 for %%i in ("%build-root%") do set build-root=%%~fi
 
-set local-install=%build-root%\install-deps
+REM set local-install=%build-root%\install-deps
 
-set build-jnano-root=%current-path%\..\build_jnano
+REM set build-jnano-root=%current-path%\..\build_jnano
 
-echo Cleaning up build artifacts...
+REM echo Cleaning up build artifacts...
 
 rem Clear the jnano build folder so we have a fresh build
-rmdir /s/q %build-jnano-root%
-if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
+REM rmdir /s/q %build-jnano-root%
+REM if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 
-mkdir %build-jnano-root%
-if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
+REM mkdir %build-jnano-root%
+REM if not !ERRORLEVEL!==0 exit /b !ERRORLEVEL!
 
-pushd %build-jnano-root%
+REM pushd %build-jnano-root%
 
-rem Clone jnano
-git clone -b develop https://github.com/ancaantochi/jnano.git
+REM rem Clone jnano
+REM git clone -b develop https://github.com/ancaantochi/jnano.git
 
-popd
+REM popd
 
-pushd %build-jnano-root%\jnano
-call mvn clean install -DskipTests
-if errorlevel 1 goto :eof
-popd
+REM pushd %build-jnano-root%\jnano
+REM call mvn clean install -DskipTests
+REM if errorlevel 1 goto :eof
+REM popd
 
 REM -- Build Java Remote SDK --
 pushd %build-root%\proxy\gateway\java\gateway-remote-module

@@ -6,8 +6,6 @@ package com.microsoft.azure.gateway.remote;
 
 import java.nio.ByteBuffer;
 
-import org.nanomsg.NanoLibrary;
-
 /**
  * Communication strategy for control messages to/from Gateway.
  *
@@ -20,8 +18,8 @@ class CommunicationControlStrategy implements CommunicationStrategy {
      * @return Endpoint type for control channel
      */
     @Override
-    public int getEndpointType(NanoLibrary nano) {
-        return nano.NN_PAIR;
+    public int getEndpointType() {
+        return NanomsgLibrary.NN_PAIR;
     }
 
     /**

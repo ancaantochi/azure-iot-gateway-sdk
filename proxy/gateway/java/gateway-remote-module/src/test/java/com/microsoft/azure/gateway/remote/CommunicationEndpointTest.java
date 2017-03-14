@@ -8,12 +8,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.nanomsg.NanoLibrary;
 
+import mockit.Expectations;
 import mockit.Mock;
 import mockit.MockUp;
 import mockit.Mocked;
@@ -26,17 +27,33 @@ public class CommunicationEndpointTest {
     private static byte[] messageBuffer = new byte[] {};
     private static int endpointId = 1;
     private static int socket = 0;
-    private static MockUp<NanoLibrary> nanoMock;
+    private static MockUp<NanomsgLibrary> nanoMock;
     private final String identifier = "test";
-    
+
     @Mocked
     CommunicationStrategy strategy;
 
     @BeforeClass
     public static void applySharedMockups() {
-        nanoMock = new MockUp<NanoLibrary>() {
+        new MockUp<NanomsgLibrary>() {
             @Mock
-            int nn_socket(int i, int j) {
+            private void loadNativeLibrary() {
+
+            }
+
+            @Mock
+            private Map<String, Integer> getSymbols() {
+                Map<String, Integer> map = new HashMap<String, Integer>();
+                map.put("NN_PAIR", 1);
+                map.put("NN_DONTWAIT", 1);
+                map.put("EAGAIN", 21);
+                map.put("AF_SP", 1);
+
+                return map;
+            }
+
+            @Mock
+            public int nn_socket(int i, int j) {
                 return socket;
             }
 
@@ -56,21 +73,6 @@ public class CommunicationEndpointTest {
             }
 
             @Mock
-            void ensureNativeCode() {
-            }
-
-            @Mock
-            int load_symbols(Map<String, Integer> map) {
-                map.put("NN_PAIR", 16);
-                return 0;
-            }
-
-            @Mock
-            int get_symbol(String name) {
-                return 1;
-            }
-
-            @Mock
             public int nn_shutdown(int socket, int how) {
                 return 0;
             }
@@ -79,14 +81,14 @@ public class CommunicationEndpointTest {
             public int nn_close(int socket) {
                 return 0;
             }
-
+            
             @Mock
-            public byte[] nn_recvbyte(int socket, int flags) {
+            public byte[] nn_recv(int socket, int flags) {
                 return messageBuffer;
             }
 
             @Mock
-            public int nn_sendbyte(int socket, byte[] str, int flags) {
+            public int nn_send(int socket, byte[] str, int flags) {
                 return sentBytes;
             }
         };
@@ -109,11 +111,15 @@ public class CommunicationEndpointTest {
 
         CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
         endpoint.connect();
-        
-        new Verifications() {{
-            strategy.getEndpointUri(anyString); times = 1;
-            strategy.getEndpointType(nanoMock.getMockInstance()); times = 1;
-         }};
+
+        new Verifications() {
+            {
+                strategy.getEndpointUri(anyString);
+                times = 1;
+                strategy.getEndpointType();
+                times = 1;
+            }
+        };
     }
 
     @Test(expected = ConnectionException.class)
@@ -134,8 +140,7 @@ public class CommunicationEndpointTest {
     }
 
     @Test
-    public void receiveMessageSuccessWithControlChannel()
-            throws ConnectionException, MessageDeserializationException {
+    public void receiveMessageSuccessWithControlChannel() throws ConnectionException, MessageDeserializationException {
         final String identifier = "test";
 
         messageBuffer = new byte[0];
@@ -144,7 +149,8 @@ public class CommunicationEndpointTest {
 
         new Verifications() {
             {
-                strategy.deserializeMessage(ByteBuffer.wrap(messageBuffer), anyByte); times = 1;
+                strategy.deserializeMessage(ByteBuffer.wrap(messageBuffer), anyByte);
+                times = 1;
             }
         };
     }
@@ -155,7 +161,7 @@ public class CommunicationEndpointTest {
         final String identifier = "test";
 
         messageBuffer = null;
-        errorNo = 1;
+        errorNo = 21;
         CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
         endpoint.receiveMessage();
     }
@@ -165,14 +171,17 @@ public class CommunicationEndpointTest {
         final String identifier = "test";
 
         messageBuffer = null;
-        errorNo = 21;
+        // new Expectations() {
+        // {
+        // nano.receiveMessageAsync(socket); result = 21;
+        // }
+        // };
         CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
         endpoint.receiveMessage();
     }
 
     @Test
-    public void disconnectMessageSuccess()
-            throws ConnectionException, MessageDeserializationException {
+    public void disconnectMessageSuccess() throws ConnectionException, MessageDeserializationException {
         final String identifier = "test";
         socket = 0;
         endpointId = 1;
@@ -180,10 +189,9 @@ public class CommunicationEndpointTest {
         CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
         endpoint.disconnect();
     }
-    
+
     @Test
-    public void sendMessageSuccess()
-            throws ConnectionException, MessageDeserializationException {
+    public void sendMessageSuccess() throws ConnectionException, MessageDeserializationException {
         final String identifier = "test";
         messageBuffer = new byte[0];
         sentBytes = 0;
@@ -191,10 +199,9 @@ public class CommunicationEndpointTest {
         CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
         endpoint.sendMessage(messageBuffer);
     }
-    
-    @Test(expected=ConnectionException.class)
-    public void sendMessageShouldThrowIfMessageNotSent()
-            throws ConnectionException, MessageDeserializationException {
+
+    @Test(expected = ConnectionException.class)
+    public void sendMessageShouldThrowIfMessageNotSent() throws ConnectionException, MessageDeserializationException {
         final String identifier = "test";
         messageBuffer = new byte[0];
         sentBytes = -1;
@@ -202,10 +209,9 @@ public class CommunicationEndpointTest {
         CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
         endpoint.sendMessage(messageBuffer);
     }
-    
+
     @Test
-    public void sendMessageAsyncSuccess()
-            throws ConnectionException, MessageDeserializationException {
+    public void sendMessageAsyncSuccess() throws ConnectionException, MessageDeserializationException {
         final String identifier = "test";
         messageBuffer = new byte[0];
         sentBytes = 0;
@@ -215,27 +221,26 @@ public class CommunicationEndpointTest {
 
         assertTrue(sent);
     }
-    
+
     @Test
-    public void sendMessageAsyncSuccessIfNoReceiver()
-            throws ConnectionException, MessageDeserializationException {
+    public void sendMessageAsyncSuccessIfNoReceiver() throws ConnectionException, MessageDeserializationException {
         final String identifier = "test";
         messageBuffer = new byte[0];
         sentBytes = -1;
-        errorNo = 1;
+        errorNo = 21;
 
         CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
         boolean sent = endpoint.sendMessageNoWait(messageBuffer);
         assertFalse(sent);
     }
-    
-    @Test(expected=ConnectionException.class)
+
+    @Test(expected = ConnectionException.class)
     public void sendMessageAsyncShouldThrowIfMessageNotSent()
             throws ConnectionException, MessageDeserializationException {
         final String identifier = "test";
         messageBuffer = new byte[0];
         sentBytes = -1;
-        errorNo = 21;
+        errorNo = 22;
 
         CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
         endpoint.sendMessageNoWait(messageBuffer);

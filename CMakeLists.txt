@@ -296,12 +296,8 @@ add_subdirectory(core)
 
 include_directories(${GW_INC}) # GW_INC defined in core
 
-if (${enable_native_remote_modules})
+if (${enable_native_remote_modules} OR ${enable_java_remote_modules})
     add_subdirectory(proxy)
-endif()
-
-if(${enable_java_remote_modules})
-    add_subdirectory(build_jnano/jnano)
 endif()
 
 add_subdirectory(modules)

@@ -6,8 +6,6 @@ package com.microsoft.azure.gateway.remote;
 
 import java.nio.ByteBuffer;
 
-import org.nanomsg.NanoLibrary;
-
 /**
  * An endpoint that is used to communicate with the remote Gateway which uses nanomsg to send and receive messages. 
  *
@@ -15,7 +13,7 @@ import org.nanomsg.NanoLibrary;
 class CommunicationEndpoint {
 
     private final String uri;
-    private final NanoLibrary nano;
+    private final NanomsgLibrary nano;
     private final CommunicationStrategy communicationStrategy;
     private byte version;
     private int socket;
@@ -28,7 +26,7 @@ class CommunicationEndpoint {
             throw new IllegalArgumentException("Communication strategy can not be null");
 
         this.communicationStrategy = communicationStrategy;
-        this.nano = new NanoLibrary();
+        this.nano = new NanomsgLibrary();
         this.uri = communicationStrategy.getEndpointUri(identifier);
     }
     
@@ -64,61 +62,34 @@ class CommunicationEndpoint {
      */
     public RemoteMessage receiveMessage() throws ConnectionException, MessageDeserializationException {
 
-        byte[] messageBuffer = this.nano.nn_recvbyte(socket, nano.NN_DONTWAIT);
-
+        byte[] messageBuffer = this.nano.receiveMessageAsync(this.socket);
         if (messageBuffer == null) {
-            int errn = this.nano.nn_errno();
-            if (errn == this.nano.EAGAIN) {
-                return null;
-            } else {
-                throw new ConnectionException(String.format("Error: %d - %s\n", errn, this.nano.nn_strerror(errn)));
-            }
+            return null;
         }
-
         return this.communicationStrategy.deserializeMessage(ByteBuffer.wrap(messageBuffer), version);
     }
 
     
     public void disconnect() {
-        this.nano.nn_shutdown(socket, endpointId);
-        this.nano.nn_close(socket);
+        this.nano.shutdown(socket, endpointId);
+        this.nano.closeSocket(socket);
     }
 
     public void sendMessage(byte[] message) throws ConnectionException {
-        int result = this.nano.nn_sendbyte(socket, message, 0);
-        if (result < 0) {
-            int errn = this.nano.nn_errno();
-            throw new ConnectionException(String.format("Error: %d - %s\n", errn, this.nano.nn_strerror(errn)));
-        }
+       this.nano.sendMessage(socket, message);
+        
     }
 
+
     public boolean sendMessageNoWait(byte[] message) throws ConnectionException {
-        int result = this.nano.nn_sendbyte(socket, message, this.nano.NN_DONTWAIT);
-        if (result < 0) {
-            int errn = this.nano.nn_errno();
-            if (errn == this.nano.EAGAIN) {
-                return false;
-            } else {
-                throw new ConnectionException(String.format("Error: %d - %s\n", errn, this.nano.nn_strerror(errn)));
-            }
-        }
-        return true;
+        return this.nano.sendMessageAsync(this.socket, message);
     }
 
     private void createSocket() throws ConnectionException {
-        this.socket = this.nano.nn_socket(this.nano.AF_SP, this.communicationStrategy.getEndpointType(this.nano));
-        if (this.socket < 0) {
-            throw new ConnectionException(String.format("Error in nn_socket: %s\n", this.nano.nn_strerror(this.nano.nn_errno())));
-        }
+        this.socket = this.nano.createSocket(this.communicationStrategy.getEndpointType());
     }
 
     private void createEndpoint() throws ConnectionException {
-        this.endpointId = this.nano.nn_bind(this.socket, this.uri);
-
-        if (this.endpointId < 0) {
-            int errn = this.nano.nn_errno();
-            this.nano.nn_close(this.socket);
-            throw new ConnectionException(String.format("Error: %d - %s\n", errn, this.nano.nn_strerror(errn)));
-        }
+        this.endpointId = this.nano.bind(this.socket, this.uri);
     }
 }

@@ -49,14 +49,6 @@ JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn
 
 /*
  * Class:     com_microsoft_azure_gateway_remote_NanomsgLibrary
- * Method:    nn_connect
- * Signature: (ILjava/lang/String;)I
- */
-JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1connect
-  (JNIEnv *, jobject, jint, jstring);
-
-/*
- * Class:     com_microsoft_azure_gateway_remote_NanomsgLibrary
  * Method:    nn_shutdown
  * Signature: (II)I
  */

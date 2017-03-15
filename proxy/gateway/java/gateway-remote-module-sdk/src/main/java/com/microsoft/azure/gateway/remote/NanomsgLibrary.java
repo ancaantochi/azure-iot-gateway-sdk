@@ -39,8 +39,6 @@ class NanomsgLibrary {
 
     private native int nn_bind(int socket, String address);
 
-    private native int nn_connect(int socket, String address);
-
     private native int nn_shutdown(int socket, int how);
 
     private native int nn_send(int socket, byte[] buffer, int flags);

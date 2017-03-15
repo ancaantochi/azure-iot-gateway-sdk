@@ -18,7 +18,7 @@ JNIEXPORT jstring JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
     jthrowable exception = (*env)->ExceptionOccurred(env);
     if (exception)
     {
-        error_msg = 0;
+        error_msg = "";
         (*env)->ExceptionClear(env);
     }
 
@@ -48,21 +48,6 @@ JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn
     return nn_bind(socket, addr);
 }
 
-
-JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1connect
-(JNIEnv *env, jobject obj, jint socket, jstring address) {
-    const char *addr = (*env)->GetStringUTFChars(env, address, NULL);
-    jthrowable exception = (*env)->ExceptionOccurred(env);
-    if (addr == NULL || exception)
-    {
-        addr = 0;
-        (*env)->ExceptionClear(env);
-    }
-
-    return nn_connect(socket, addr);
-}
-
-
 JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1shutdown
 (JNIEnv *env, jobject obj, jint socket, jint endpoint) {
     return nn_shutdown(socket, endpoint);
@@ -70,11 +55,11 @@ JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn
 
 JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1send
 (JNIEnv *env, jobject obj, jint socket, jbyteArray buffer, jint flags) {
-    jint result = 0;
+    jint result = -1;
     jsize length = (*env)->GetArrayLength(env, buffer);
     jthrowable exception = (*env)->ExceptionOccurred(env);
     if (exception) {
-        result = 0;
+        result = -1;
         (*env)->ExceptionClear(env);
     }
     else {
@@ -82,12 +67,11 @@ JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn
         exception = (*env)->ExceptionOccurred(env);
         if (cbuffer == NULL || exception)
         {
-            result = 0;
+            result = -1;
             (*env)->ExceptionClear(env);
         }
         else {
             result = nn_send(socket, cbuffer, length, flags);
-
             (*env)->ReleaseByteArrayElements(env, buffer, cbuffer, JNI_ABORT);
         }
     }

@@ -16,7 +16,7 @@ JNIEXPORT jstring JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
 
     jstring error_msg = (*env)->NewStringUTF(env, error);
     jthrowable exception = (*env)->ExceptionOccurred(env);
-    if (exception)
+    if (error_msg == NULL || exception)
     {
         error_msg = "";
         (*env)->ExceptionClear(env);
@@ -38,11 +38,10 @@ JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn
 JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1bind
 (JNIEnv *env, jobject obj, jint socket, jstring address) {
     const char *addr = (*env)->GetStringUTFChars(env, address, NULL);
-    jthrowable exception = (*env)->ExceptionOccurred(env);
-    if (addr == NULL || exception)
+    
+    if (addr == NULL)
     {
         addr = 0;
-        (*env)->ExceptionClear(env);
     }
     
     return nn_bind(socket, addr);
@@ -57,23 +56,16 @@ JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn
 (JNIEnv *env, jobject obj, jint socket, jbyteArray buffer, jint flags) {
     jint result = -1;
     jsize length = (*env)->GetArrayLength(env, buffer);
-    jthrowable exception = (*env)->ExceptionOccurred(env);
-    if (exception) {
+    
+    jbyte* cbuffer = (*env)->GetByteArrayElements(env, buffer, 0);
+        
+    if (cbuffer == NULL)
+    {
         result = -1;
-        (*env)->ExceptionClear(env);
     }
     else {
-        jbyte* cbuffer = (*env)->GetByteArrayElements(env, buffer, 0);
-        exception = (*env)->ExceptionOccurred(env);
-        if (cbuffer == NULL || exception)
-        {
-            result = -1;
-            (*env)->ExceptionClear(env);
-        }
-        else {
-            result = nn_send(socket, cbuffer, length, flags);
-            (*env)->ReleaseByteArrayElements(env, buffer, cbuffer, JNI_ABORT);
-        }
+        result = nn_send(socket, cbuffer, length, flags);
+        (*env)->ReleaseByteArrayElements(env, buffer, cbuffer, JNI_ABORT);
     }
 
     return result;
@@ -91,14 +83,13 @@ JNIEXPORT jbyteArray JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibr
     }
     else {
         result = (*env)->NewByteArray(env, nbytes);
-        jthrowable exception = (*env)->ExceptionOccurred(env);
-        if (exception) {
+        
+        if (result == NULL) {
             result = 0;
-            (*env)->ExceptionClear(env);
         }
         else {
             (*env)->SetByteArrayRegion(env, result, 0, nbytes, (const jbyte*)buf);
-            exception = (*env)->ExceptionOccurred(env);
+            jthrowable exception = (*env)->ExceptionOccurred(env);
             if (exception) {
                 result = 0;
                 (*env)->ExceptionClear(env);
@@ -186,6 +177,12 @@ JNIEXPORT jobject JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
                                     }
                                     else {
                                         (*env)->CallObjectMethod(env, jmap_object, jmap_put, jkey, jval);
+                                        exception = (*env)->ExceptionOccurred(env);
+                                        if (exception)
+                                        {
+                                            result = NULL;
+                                            (*env)->ExceptionClear(env);
+                                        }
                                     }
                                 }
                             }

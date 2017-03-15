@@ -100,3 +100,8 @@ set_target_properties(java_nanomsg PROPERTIES FOLDER "Proxy/Gateway")
 #set_target_properties(java_nanomsg_static PROPERTIES FOLDER "Proxy/Gateway")
 
 install(TARGETS java_nanomsg LIBRARY DESTINATION "${LIB_INSTALL_DIR}/modules")
+
+
+if(${run_unittests})
+    add_subdirectory(nanomsg-binding/tests)
+endif()

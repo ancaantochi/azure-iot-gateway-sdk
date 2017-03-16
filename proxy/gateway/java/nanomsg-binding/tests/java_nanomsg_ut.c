@@ -64,21 +64,28 @@ MOCK_FUNCTION_WITH_CODE(JNICALL, jstring, NewStringUTF, JNIEnv*, env, const char
 jstring jstr = (jstring)utf;
 MOCK_FUNCTION_END(jstr)
 
-MOCK_FUNCTION_WITH_CODE(JNICALL, const char *, GetStringUTFChars, JNIEnv*, env, jstring, string, jboolean*, isCopy);
-const char *stringChars = "Test";
+MOCK_FUNCTION_WITH_CODE(JNICALL, const char *, GetStringUTFChars, JNIEnv*, env, jstring, str, jboolean*, isCopy);
+char *stringChars = "Test";
 MOCK_FUNCTION_END(stringChars)
 
 MOCK_FUNCTION_WITH_CODE(JNICALL, jsize, GetArrayLength, JNIEnv*, env, jarray, arr);
 jsize size = sizeof(arr);
 MOCK_FUNCTION_END(size)
 
-MOCKABLE_FUNCTION(JNICALL, jbyteArray, NewByteArray, JNIEnv*, env, jsize, len);
-jbyteArray my_NewByteArray(JNIEnv* env, jsize len)
-{
-    return (jbyteArray)malloc(1);
-}
+MOCK_FUNCTION_WITH_CODE(JNICALL, jbyteArray, NewByteArray, JNIEnv*, env, jsize, len);
+jbyteArray arr =(jbyteArray)malloc(1);
+MOCK_FUNCTION_END(arr)
 
 MOCK_FUNCTION_WITH_CODE(JNICALL, void, GetByteArrayRegion, JNIEnv*, env, jbyteArray, arr, jsize, start, jsize, len, jbyte*, buf);
+MOCK_FUNCTION_END()
+
+MOCK_FUNCTION_WITH_CODE(JNICALL, jbyte*, GetByteArrayElements, JNIEnv*, env, jbyteArray, arr, jboolean*, isCopy);
+MOCK_FUNCTION_END((jbyte*)1)
+
+MOCK_FUNCTION_WITH_CODE(JNICALL, void, ReleaseByteArrayElements, JNIEnv*, env, jbyteArray, arr, jbyte*, elems, jint, mode);
+MOCK_FUNCTION_END()
+
+MOCK_FUNCTION_WITH_CODE(JNICALL, void, SetByteArrayRegion, JNIEnv*, env, jbyteArray, arr, jsize, start, jsize, len, const jbyte*, buf);
 MOCK_FUNCTION_END()
 
 MOCKABLE_FUNCTION(JNICALL, void, DeleteLocalRef, JNIEnv*, env, jobject, obj);
@@ -112,11 +119,11 @@ struct JNINativeInterface_ env = {
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, NULL, NULL, NewStringUTF, NULL, GetStringUTFChars, NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL, NewStringUTF, NULL, GetStringUTFChars, NULL, GetArrayLength, NULL, NULL,
+    NULL, NULL, NewByteArray, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+    GetByteArrayElements, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ReleaseByteArrayElements, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+    NULL, NULL, NULL, NULL, SetByteArrayRegion, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
@@ -184,6 +191,7 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
     REGISTER_UMOCK_ALIAS_TYPE(jclass, void*);
     REGISTER_UMOCK_ALIAS_TYPE(jmethodID, void*);
     REGISTER_UMOCK_ALIAS_TYPE(jobject, void*);
+    REGISTER_UMOCK_ALIAS_TYPE(jstring, void*);
     REGISTER_UMOCK_ALIAS_TYPE(jsize, int);
     REGISTER_UMOCK_ALIAS_TYPE(jthrowable, int);
     REGISTER_UMOCK_ALIAS_TYPE(jbyteArray, void*);
@@ -191,7 +199,7 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
     REGISTER_UMOCK_ALIAS_TYPE(const jbyte*, void*);
     REGISTER_UMOCK_ALIAS_TYPE(jarray, void*);
     REGISTER_UMOCK_ALIAS_TYPE(JNIEnv*, void*);
-  
+
     REGISTER_UMOCK_ALIAS_TYPE(const char*, char*);
 
     REGISTER_UMOCK_ALIAS_TYPE(void**, void*);
@@ -208,7 +216,7 @@ TEST_SUITE_INITIALIZE(TestClassInitialize)
     *((JNIEnv*)(*global_env)) = malloc(sizeof(struct JNINativeInterface_));
     *(struct JNINativeInterface_*)(*((JNIEnv*)(*global_env))) = env;
 #endif
-   
+
 }
 
 TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -246,7 +254,7 @@ TEST_FUNCTION(Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1errno_s
 
     STRICT_EXPECTED_CALL(nn_errno())
         .SetReturn(EAGAIN);
-  
+
     //Act
     jint result = Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1errno(global_env, jObject);
 
@@ -342,11 +350,12 @@ TEST_FUNCTION(Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1bind_su
     jint socket = (jint)1;
     char* address = "control_id";
     jint endpointId = (jint)0;
+    jstring jaddress = (jstring)address;
     STRICT_EXPECTED_CALL(nn_bind(socket, address))
         .SetReturn(endpointId);
 
     //Act
-    jint result = Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1bind(global_env, jObject, socket, (jstring)address);
+    jint result = Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1bind(global_env, jObject, socket, jaddress);
 
     //Assert
     ASSERT_ARE_EQUAL(int32_t, endpointId, result);
@@ -385,7 +394,28 @@ TEST_FUNCTION(Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1send_su
         .SetReturn(expectedResult);
 
     //Act
-    jint result = Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1send(global_env, jObject, socket, buffer,  flags);
+    jint result = Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1send(global_env, jObject, socket, buffer, flags);
+
+    //Assert
+    // ASSERT_ARE_EQUAL(int32_t, expectedResult, result);
+}
+
+TEST_FUNCTION(Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1recv_success)
+{
+    //Arrange
+    umock_c_reset_all_calls();
+
+    jobject jObject = (jobject)0x42;
+    jint socket = (jint)1;
+    jbyteArray buffer = (jbyteArray)0x42;
+    jint flags = (jint)1;
+    int expectedResult = 5;
+    void *buf = NULL;
+    STRICT_EXPECTED_CALL(nn_recv(socket, buf, NN_MSG, flags))
+        .SetReturn(expectedResult);
+
+    //Act
+    jbyteArray result = Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1recv(global_env, jObject, socket, flags);
 
     //Assert
     // ASSERT_ARE_EQUAL(int32_t, expectedResult, result);

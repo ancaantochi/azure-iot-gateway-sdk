@@ -276,6 +276,8 @@ public class ProxyGateway {
 
         private void processCreateMessage(RemoteMessage message, CommunicationEndpoint endpoint)
                 throws ConnectionException, ModuleInstantiationException {
+            // Codes_SRS_JAVA_PROXY_GATEWAY_24_017: [ *Message Listener task - Create message* - If the creation process has already occurred, 
+            // it shall call module destroy, disconnect from the message channel and continue processing the creation message ]
             this.disconnectDataMessage();
 
             CreateMessage controlMessage = (CreateMessage) message;

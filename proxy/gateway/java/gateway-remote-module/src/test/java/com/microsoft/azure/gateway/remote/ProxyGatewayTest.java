@@ -428,7 +428,8 @@ public class ProxyGatewayTest {
         assertTrue(proxy.isAttached());
     }
 
-    // Tests_SRS_JAVA_PROXY_GATEWAY_24_017: [ *Message Listener task - Create message* - If the creation process has already occurred, it shall call module destroy, disconnect from the message channel and continue processing the creation message ]
+    // Tests_SRS_JAVA_PROXY_GATEWAY_24_017: [ *Message Listener task - Create message* - If the creation process has already occurred, 
+    // it shall call module destroy, disconnect from the message channel and continue processing the creation message ]
     @Test
     public void attachShouldHandleCreateMessageIfAlreadyCreated(@Mocked final CommunicationEndpoint controlEndpoint,
             @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,

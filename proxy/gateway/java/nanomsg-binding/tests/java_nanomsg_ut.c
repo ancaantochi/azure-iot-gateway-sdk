@@ -154,7 +154,7 @@ MOCK_FUNCTION_WITH_CODE(, int, nn_freemsg, void *, msg)
 MOCK_FUNCTION_END(0)
 
 MOCK_FUNCTION_WITH_CODE(, int, nn_recv, int, s, void *, buf, size_t, len, int, flags)
-MOCK_FUNCTION_END(4)
+MOCK_FUNCTION_END(len)
 
 MOCK_FUNCTION_WITH_CODE(, int, nn_send, int, s, const void *, buf, size_t, len, int, flags)
 MOCK_FUNCTION_END(len)
@@ -451,12 +451,12 @@ TEST_FUNCTION(Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1send_su
     jint socket = (jint)1;
     jbyteArray buffer = (jbyteArray)0x42;
     jint flags = (jint)1;
-    jint expectedResult = (jint)4;
+    jint expectedResult = (jint)sizeof(buffer);
     STRICT_EXPECTED_CALL(GetArrayLength(IGNORED_PTR_ARG, IGNORED_PTR_ARG))
         .IgnoreAllArguments();
     STRICT_EXPECTED_CALL(GetByteArrayElements(IGNORED_PTR_ARG, IGNORED_PTR_ARG, 0))
         .IgnoreAllArguments();
-    STRICT_EXPECTED_CALL(nn_send(socket, buffer, 4, flags))
+    STRICT_EXPECTED_CALL(nn_send(socket, buffer, sizeof(buffer), flags))
         .SetReturn(expectedResult);
     STRICT_EXPECTED_CALL(ReleaseByteArrayElements(IGNORED_PTR_ARG, IGNORED_PTR_ARG, IGNORED_PTR_ARG, JNI_ABORT));
 

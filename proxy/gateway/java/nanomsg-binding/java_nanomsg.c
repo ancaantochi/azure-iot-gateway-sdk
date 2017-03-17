@@ -122,7 +122,7 @@ JNIEXPORT jobject JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
             (*env)->ExceptionClear(env);
         }
         else {
-            jobject jmap_object = (*env)->NewObjectV(env, jMap_class, jMap_init, NULL);
+            jobject jmap_object = (*env)->NewObject(env, jMap_class, jMap_init, NULL);
             exception = (*env)->ExceptionOccurred(env);
             if (jmap_object == NULL || exception)
             {
@@ -168,7 +168,7 @@ JNIEXPORT jobject JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
                                     (*env)->ExceptionClear(env);
                                 }
                                 else {
-                                    jobject jval = (*env)->NewObjectV(env, jinteger_class, jinteger_init, value);
+                                    jobject jval = (*env)->NewObject(env, jinteger_class, jinteger_init, value);
                                     exception = (*env)->ExceptionOccurred(env);
                                     if (jval == NULL || exception)
                                     {

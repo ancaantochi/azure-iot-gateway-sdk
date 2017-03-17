@@ -60,9 +60,10 @@ MOCK_FUNCTION_WITH_CODE(JNICALL, jmethodID, GetMethodID, JNIEnv*, env, jclass, c
 jmethodID methodID = (jmethodID)0x42;
 MOCK_FUNCTION_END(methodID)
 
-MOCK_FUNCTION_WITH_CODE(JNICALL, jobject, NewObjectV, JNIEnv*, env, jclass, clazz, jmethodID, methodID, va_list, args);
-jobject object = (jobject)0x42;
-MOCK_FUNCTION_END(object)
+jobject NewObject(JNIEnv *env, jclass clazz, jmethodID methodID, ...)
+{
+    return (jobject)0x42;
+}
 
 jobject CallObjectMethod(JNIEnv *env, jobject obj, jmethodID methodID, ...)
 {
@@ -114,7 +115,7 @@ struct JNINativeInterface_ env = {
 
     NULL, NULL, FindClass, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, ExceptionOccurred, NULL, ExceptionClear, NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, NULL, NULL, NULL, NULL, NewObjectV, NULL, NULL, NULL, GetMethodID,
+    NULL, NULL, NULL, NULL, NewObject, NULL, NULL, NULL, NULL, GetMethodID,
     CallObjectMethod, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -637,8 +638,8 @@ TEST_FUNCTION(Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_getSymbols_
     STRICT_EXPECTED_CALL(ExceptionOccurred(IGNORED_PTR_ARG))
         .IgnoreArgument(1)
         .SetReturn(NULL);
-    STRICT_EXPECTED_CALL(NewObjectV(IGNORED_PTR_ARG, IGNORED_PTR_ARG, IGNORED_PTR_ARG, NULL))
-        .IgnoreAllArguments();
+    /*STRICT_EXPECTED_CALL(NewObjectV(IGNORED_PTR_ARG, IGNORED_PTR_ARG, IGNORED_PTR_ARG, NULL))
+        .IgnoreAllArguments();*/
     STRICT_EXPECTED_CALL(ExceptionOccurred(IGNORED_PTR_ARG))
         .IgnoreArgument(1)
         .SetReturn(NULL);
@@ -700,10 +701,6 @@ TEST_FUNCTION(Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_getSymbols_
         .IgnoreArgument(1)
         .SetReturn(NULL)
         .SetFailReturn(exception);
-    STRICT_EXPECTED_CALL(NewObjectV(IGNORED_PTR_ARG, IGNORED_PTR_ARG, IGNORED_PTR_ARG, NULL))
-        .IgnoreAllArguments()
-        .SetReturn(jObject)
-        .SetFailReturn(NULL);
     STRICT_EXPECTED_CALL(ExceptionOccurred(IGNORED_PTR_ARG))
         .IgnoreArgument(1)
         .SetReturn(NULL)
@@ -743,10 +740,6 @@ TEST_FUNCTION(Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_getSymbols_
         .IgnoreArgument(1)
         .SetReturn(NULL)
         .SetFailReturn(exception);
-    STRICT_EXPECTED_CALL(NewObjectV(IGNORED_PTR_ARG, IGNORED_PTR_ARG, IGNORED_PTR_ARG, 0))
-        .IgnoreAllArguments()
-        .SetReturn(jObject)
-        .SetFailReturn(NULL);
     STRICT_EXPECTED_CALL(ExceptionOccurred(IGNORED_PTR_ARG))
         .IgnoreArgument(1)
         .SetReturn(NULL)
@@ -760,7 +753,7 @@ TEST_FUNCTION(Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_getSymbols_
 
     for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
     {
-        if (i != 12)
+        if (i != 11)
         {
             // arrange
             umock_c_negative_tests_reset();

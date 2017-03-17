@@ -171,11 +171,7 @@ public class CommunicationEndpointTest {
         final String identifier = "test";
 
         messageBuffer = null;
-        // new Expectations() {
-        // {
-        // nano.receiveMessageAsync(socket); result = 21;
-        // }
-        // };
+
         CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
         endpoint.receiveMessage();
     }

@@ -180,7 +180,7 @@ public class ProxyGateway {
                 logger.info("Sending DETACH to the Gateway...");
                 // Codes_SRS_JAVA_PROXY_GATEWAY_24_032: [ It shall attempt to notify the Gateway of the detachment. ]
                 this.sendControlReplyMessage(RemoteModuleReplyCode.DETACH.getValue());
-                logger.info("DETACH sent succefully.");
+                logger.info("DETACH sent successfully.");
 
                 try {
                     // sleep for a second so the Gateway has time to receive the

@@ -26,6 +26,7 @@ class NanomsgLibrary {
     }
 
     static void loadNativeLibrary() {
+        System.loadLibrary("nanomsg");
         System.loadLibrary("java_nanomsg");
     }
 

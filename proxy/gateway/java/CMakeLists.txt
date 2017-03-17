@@ -97,7 +97,7 @@ target_compile_definitions(java_nanomsg_static PRIVATE BUILD_MODULE_TYPE_STATIC)
 target_link_libraries(java_nanomsg_static ${LIBS} nanomsg)
 
 set_target_properties(java_nanomsg PROPERTIES FOLDER "Proxy/Gateway")
-#set_target_properties(java_nanomsg_static PROPERTIES FOLDER "Proxy/Gateway")
+set_target_properties(java_nanomsg_static PROPERTIES FOLDER "Proxy/Gateway")
 
 install(TARGETS java_nanomsg LIBRARY DESTINATION "${LIB_INSTALL_DIR}/modules")
 

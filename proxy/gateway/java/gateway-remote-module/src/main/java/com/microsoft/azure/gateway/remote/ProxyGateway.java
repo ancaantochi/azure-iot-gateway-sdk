@@ -177,8 +177,10 @@ public class ProxyGateway {
                 this.module.destroy();
 
             if (sendDetachToGateway) {
+                logger.info("Sending DETACH to the Gateway...");
                 // Codes_SRS_JAVA_PROXY_GATEWAY_24_032: [ It shall attempt to notify the Gateway of the detachment. ]
                 this.sendControlReplyMessage(RemoteModuleReplyCode.DETACH.getValue());
+                logger.info("DETACH sent succefully.");
 
                 try {
                     // sleep for a second so the Gateway has time to receive the
@@ -193,8 +195,10 @@ public class ProxyGateway {
 
             // Codes_SRS_JAVA_PROXY_GATEWAY_24_024: [ *Message Listener task - Destroy message* - If message type is DESTROY, it shall disconnect from the message channel. ]
             // Codes_SRS_JAVA_PROXY_GATEWAY_24_034: [It shall disconnect from the Gateway message channel. ]
-            if (this.dataEndpoint != null)
+            if (this.dataEndpoint != null) {
                 this.dataEndpoint.disconnect();
+                this.dataEndpoint = null;
+            }
 
             this.module = null;
         }
@@ -217,6 +221,7 @@ public class ProxyGateway {
             if (message != null) {
                 ControlMessage controlMessage = (ControlMessage) message;
                 if (controlMessage.getMessageType() == RemoteMessageType.CREATE) {
+                    logger.info("Received CREATE message from the Gateway");
                     try {
                         // Codes_SRS_JAVA_PROXY_GATEWAY_24_014: [ *Message Listener task* - If the message type is CREATE, it shall process the create message ]
                         this.processCreateMessage(message, this.controlEndpoint);
@@ -232,14 +237,19 @@ public class ProxyGateway {
                         logger.error(e.toString());
                         this.sendControlReplyMessage(RemoteModuleReplyCode.CREATION_ERROR.getValue());
                     }
+                    logger.info("Created successfully.");
                 }
 
                 if (controlMessage.getMessageType() == RemoteMessageType.START) {
+                    logger.info("Received START message from the Gateway");
                     this.processStartMessage();
+                    logger.info("Started successfully.");
                 }
 
                 if (controlMessage.getMessageType() == RemoteMessageType.DESTROY) {
+                    logger.info("Received DESTROY message from the Gateway");
                     this.processDestroyMessage();
+                    logger.info("Destroyed successfully.");
                 }
             }
         }

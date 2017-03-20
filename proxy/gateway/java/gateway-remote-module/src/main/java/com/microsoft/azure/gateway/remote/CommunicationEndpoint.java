@@ -4,92 +4,40 @@
  */
 package com.microsoft.azure.gateway.remote;
 
-import java.nio.ByteBuffer;
+interface CommunicationEndpoint {
 
-/**
- * An endpoint that is used to communicate with the remote Gateway which uses nanomsg to send and receive messages. 
- *
- */
-class CommunicationEndpoint {
-
-    private final String uri;
-    private final NanomsgLibrary nano;
-    private final CommunicationStrategy communicationStrategy;
-    private byte version;
-    private int socket;
-    private int endpointId;
-
-    public CommunicationEndpoint(String identifier, CommunicationStrategy communicationStrategy) {
-        if (identifier == null)
-            throw new IllegalArgumentException("Identifier can not be null");
-        if (communicationStrategy == null)
-            throw new IllegalArgumentException("Communication strategy can not be null");
-
-        this.communicationStrategy = communicationStrategy;
-        this.nano = new NanomsgLibrary();
-        this.uri = communicationStrategy.getEndpointUri(identifier);
-    }
-    
-    public byte getVersion() {
-        return version;
-    }
+    byte getVersion();
 
     /**
      * Set message version
      *
      * @param version
      */
-    public void setVersion(byte version) {
-        this.version = version;
-    }
+    void setVersion(byte version);
 
     /**
      * Creates a socket and connects to it.
      * 
      */
-    public void connect() throws ConnectionException {
-        this.createSocket();
-        this.createEndpoint();
-    }
+    void connect() throws ConnectionException;
 
     /**
-     * Checks if there are new messages to receive. This method does not block, if there is no message it returns immediately.
+     * Checks if there are new messages to receive. This method does not block,
+     * if there is no message it returns immediately.
      * 
      * @return Deserialized message
      *
-     * @throws ConnectionException If there is any error receiving the message from the Gateway 
-     * @throws MessageDeserializationException If the message is not in the expected format.
+     * @throws ConnectionException
+     *             If there is any error receiving the message from the Gateway
+     * @throws MessageDeserializationException
+     *             If the message is not in the expected format.
      */
-    public RemoteMessage receiveMessage() throws ConnectionException, MessageDeserializationException {
+    RemoteMessage receiveMessage() throws ConnectionException, MessageDeserializationException;
 
-        byte[] messageBuffer = this.nano.receiveMessageAsync(this.socket);
-        if (messageBuffer == null) {
-            return null;
-        }
-        return this.communicationStrategy.deserializeMessage(ByteBuffer.wrap(messageBuffer), version);
-    }
+    void disconnect();
 
-    
-    public void disconnect() {
-        this.nano.shutdown(socket, endpointId);
-        this.nano.closeSocket(socket);
-    }
+    void sendMessage(byte[] message) throws ConnectionException;
 
-    public void sendMessage(byte[] message) throws ConnectionException {
-       this.nano.sendMessage(socket, message);
-        
-    }
+    boolean sendMessageNoWait(byte[] message) throws ConnectionException;
 
-
-    public boolean sendMessageNoWait(byte[] message) throws ConnectionException {
-        return this.nano.sendMessageAsync(this.socket, message);
-    }
-
-    private void createSocket() throws ConnectionException {
-        this.socket = this.nano.createSocket(this.communicationStrategy.getEndpointType());
-    }
-
-    private void createEndpoint() throws ConnectionException {
-        this.endpointId = this.nano.bind(this.socket, this.uri);
-    }
 }

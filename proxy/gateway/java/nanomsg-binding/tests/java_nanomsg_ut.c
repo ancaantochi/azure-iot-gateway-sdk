@@ -110,11 +110,15 @@ MOCK_FUNCTION_END(NULL)
 MOCK_FUNCTION_WITH_CODE(JNICALL, void, ExceptionClear, JNIEnv*, env);
 MOCK_FUNCTION_END()
 
+MOCK_FUNCTION_WITH_CODE(JNICALL, void, ExceptionDescribe, JNIEnv*, env);
+MOCK_FUNCTION_END()
+
+// Structure storing all JNI function pointers. Used to mock the JNIEnv type is a pointer to this structure
 struct JNINativeInterface_ env = {
     0, 0, 0, 0,
 
     NULL, NULL, FindClass, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-    NULL, ExceptionOccurred, NULL, ExceptionClear, NULL, NULL, NULL, NULL, NULL, NULL,
+    NULL, ExceptionOccurred, ExceptionDescribe, ExceptionClear, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NewObject, NULL, NULL, NULL, NULL, GetMethodID,
     CallObjectMethod, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -671,6 +675,57 @@ TEST_FUNCTION(Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_getSymbols_
     ASSERT_IS_NOT_NULL(result);
 }
 
+TEST_FUNCTION(Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_getSymbols_returns_map_if_symbol_failure)
+{
+    //Arrange
+    umock_c_reset_all_calls();
+
+    jclass jClass = (jclass)0x42;
+    jobject jObject = (jobject)0x42;
+    jmethodID jMethodId = (jmethodID)0x42;
+    char* symbol = "NN_PAIR";
+    jthrowable exception = (jthrowable)0x42;
+
+    int tests = 0;
+    tests = umock_c_negative_tests_init();
+
+    STRICT_EXPECTED_CALL(nn_symbol(0, IGNORED_PTR_ARG))
+        .IgnoreArgument(2)
+        .SetReturn(symbol);
+    STRICT_EXPECTED_CALL(NewStringUTF(IGNORED_PTR_ARG, IGNORED_PTR_ARG))
+        .IgnoreAllArguments()
+        .SetReturn((jstring)0x42)
+        .SetFailReturn(NULL);
+    STRICT_EXPECTED_CALL(ExceptionOccurred(IGNORED_PTR_ARG))
+        .IgnoreArgument(1)
+        .SetReturn(NULL)
+        .SetFailReturn(exception);
+    STRICT_EXPECTED_CALL(ExceptionOccurred(IGNORED_PTR_ARG))
+        .IgnoreArgument(1)
+        .SetReturn(NULL)
+        .SetFailReturn(exception);
+    STRICT_EXPECTED_CALL(ExceptionOccurred(IGNORED_PTR_ARG))
+        .IgnoreArgument(1)
+        .SetReturn(NULL)
+        .SetFailReturn(exception);
+
+    umock_c_negative_tests_snapshot();
+
+    for (size_t i = 1; i < umock_c_negative_tests_call_count(); i++)
+    {
+        // arrange
+        umock_c_negative_tests_reset();
+        umock_c_negative_tests_fail_call(i);
+
+        //Act
+        jobject result = Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_getSymbols(global_env, jClass);
+
+        //Assert
+        ASSERT_IS_NOT_NULL(result);
+    }
+    umock_c_negative_tests_deinit();
+}
+
 TEST_FUNCTION(Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_getSymbols_returns_null_if_failure)
 {
     //Arrange
@@ -732,22 +787,6 @@ TEST_FUNCTION(Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_getSymbols_
     STRICT_EXPECTED_CALL(nn_symbol(0, IGNORED_PTR_ARG))
         .IgnoreArgument(2)
         .SetReturn(symbol);
-    STRICT_EXPECTED_CALL(NewStringUTF(IGNORED_PTR_ARG, IGNORED_PTR_ARG))
-        .IgnoreAllArguments()
-        .SetReturn((jstring)0x42)
-        .SetFailReturn(NULL);
-    STRICT_EXPECTED_CALL(ExceptionOccurred(IGNORED_PTR_ARG))
-        .IgnoreArgument(1)
-        .SetReturn(NULL)
-        .SetFailReturn(exception);
-    STRICT_EXPECTED_CALL(ExceptionOccurred(IGNORED_PTR_ARG))
-        .IgnoreArgument(1)
-        .SetReturn(NULL)
-        .SetFailReturn(exception);
-    STRICT_EXPECTED_CALL(ExceptionOccurred(IGNORED_PTR_ARG))
-        .IgnoreArgument(1)
-        .SetReturn(NULL)
-        .SetFailReturn(exception);
 
     umock_c_negative_tests_snapshot();
 

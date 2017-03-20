@@ -5,10 +5,8 @@
 package com.microsoft.azure.gateway.remote;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNotNull;
-
-import java.util.Map;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -18,8 +16,6 @@ import com.microsoft.azure.gateway.remote.ProxyGateway.MessageListener;
 
 import mockit.Deencapsulation;
 import mockit.Expectations;
-import mockit.Mock;
-import mockit.MockUp;
 import mockit.Mocked;
 import mockit.Verifications;
 
@@ -27,7 +23,6 @@ public class ProxyGatewayTest {
 
     private final static String identifier = "test";
     private static byte version = 1;
-    private static byte[] messageBuffer = new byte[10];
     private static ModuleConfiguration config;
     private final String dataSocketId = "data-test";
     private final String args = "";
@@ -57,7 +52,7 @@ public class ProxyGatewayTest {
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_002: [ The constructor shall save `config` for later use. ]
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_003: [ If already attached the function shall do nothing and return. ]
     @Test
-    public void attachSuccessIfAlreadyAttached(@Mocked final CommunicationEndpoint controlEndpoint)
+    public void attachSuccessIfAlreadyAttached(@Mocked final NanomsgCommunicationEndpoint controlEndpoint)
             throws ConnectionException, MessageDeserializationException {
         
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -82,7 +77,7 @@ public class ProxyGatewayTest {
 
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_004: [ It shall instantiate the messages listener task.  ]
     @Test
-    public void attachShouldInstantiateMessagesListener(@Mocked final CommunicationEndpoint controlEndpoint)
+    public void attachShouldInstantiateMessagesListener(@Mocked final NanomsgCommunicationEndpoint controlEndpoint)
             throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -108,7 +103,7 @@ public class ProxyGatewayTest {
     
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_005: [ It shall instantiate a single-threaded executor that can schedule the task to execute periodically. ]
     @Test
-    public void attachShouldInstantiateExecutor(@Mocked final CommunicationEndpoint controlEndpoint)
+    public void attachShouldInstantiateExecutor(@Mocked final NanomsgCommunicationEndpoint controlEndpoint)
             throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -134,7 +129,7 @@ public class ProxyGatewayTest {
     
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_005: [ It shall start executing the periodic task of listening for messages from the Gateway. ]
     @Test(expected = ConnectionException.class)
-    public void attachShouldStartExecutor(@Mocked final CommunicationEndpoint controlEndpoint)
+    public void attachShouldStartExecutor(@Mocked final NanomsgCommunicationEndpoint controlEndpoint)
             throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -161,7 +156,7 @@ public class ProxyGatewayTest {
     
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_006: [ It shall start executing the periodic task of listening for messages from the Gateway. ]
     @Test
-    public void attachShouldCallStartListening(@Mocked final CommunicationEndpoint controlEndpoint)
+    public void attachShouldCallStartListening(@Mocked final NanomsgCommunicationEndpoint controlEndpoint)
             throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -192,7 +187,7 @@ public class ProxyGatewayTest {
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_008: [ *Message Listener task* - It shall connect to the control channel. ]
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_009: [ *Message Listener task* - If the connection with the control channel fails, it shall throw ConnectionException. ]
     @Test(expected = ConnectionException.class)
-    public void attachShouldThrowIfConnectFails(@Mocked final CommunicationEndpoint controlEndpoint)
+    public void attachShouldThrowIfConnectFails(@Mocked final NanomsgCommunicationEndpoint controlEndpoint)
             throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -218,8 +213,8 @@ public class ProxyGatewayTest {
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_010: [ *Message Listener task* - It shall poll the gateway control channel for new messages. ]
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_011: [ *Message Listener task* - If no message is available the listener shall do nothing. ]
     @Test
-    public void attachNoOpIfNoMessageReceived(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module)
+    public void attachNoOpIfNoMessageReceived(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module)
             throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -231,7 +226,7 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
 
                 controlEndpoint.connect();
@@ -259,8 +254,8 @@ public class ProxyGatewayTest {
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_015: [ *Message Listener task - Create message* - Create message processing shall create the data message channel and connect to it. ]
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_018: [ *Message Listener task - Create message* - Create message processing shall create a module instance and call `create` method. ]
     @Test
-    public void attachShouldCreateModuleInstanceNoArgsConstructor(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module)
+    public void attachShouldCreateModuleInstanceNoArgsConstructor(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module)
             throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -272,9 +267,9 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
-                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                new NanomsgCommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
                 result = dataEndpoint;
 
                 new TestModuleImplementsInterface();
@@ -317,8 +312,8 @@ public class ProxyGatewayTest {
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_015: [ *Message Listener task - Create message* - Create message processing shall create the data message channel and connect to it. ]
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_018: [ *Message Listener task - Create message* - Create message processing shall create a module instance and call `create` method. ]
     @Test
-    public void attachShouldCreateModuleInstanceArgsConstructor(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint)
+    public void attachShouldCreateModuleInstanceArgsConstructor(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint)
             throws ConnectionException, MessageDeserializationException {
 
         ModuleConfiguration.Builder configBuilder = new ModuleConfiguration.Builder();
@@ -335,9 +330,9 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
-                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                new NanomsgCommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
                 result = dataEndpoint;
 
                 controlEndpoint.connect();
@@ -373,8 +368,8 @@ public class ProxyGatewayTest {
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_017: [ *Message Listener task - Create message* - If the creation process has already occurred, 
     // it shall call module destroy, disconnect from the message channel and continue processing the creation message ]
     @Test
-    public void attachShouldHandleCreateMessageIfAlreadyCreated(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
+    public void attachShouldHandleCreateMessageIfAlreadyCreated(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -386,9 +381,9 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
-                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                new NanomsgCommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
                 result = dataEndpoint;
 
                 new TestModuleImplementsInterface();
@@ -444,7 +439,7 @@ public class ProxyGatewayTest {
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_012: [ *Message Listener task* - If a control message is received and deserialization fails it shall send an error message to the Gateway. ]
     @Test
     public void attachShouldNotInstantiateModuleIfMessageDeserializationException(
-            @Mocked final CommunicationEndpoint controlEndpoint, @Mocked final TestModuleImplementsInterface module,
+            @Mocked final NanomsgCommunicationEndpoint controlEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -456,7 +451,7 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
 
                 controlEndpoint.connect();
@@ -497,7 +492,7 @@ public class ProxyGatewayTest {
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_013: [ *Message Listener task* - If there is an error receiving the control message it shall send an error message to the Gateway. ]
     @Test
     public void attachShouldNotInstantiateModuleIfConnectionException(
-            @Mocked final CommunicationEndpoint controlEndpoint, @Mocked final TestModuleImplementsInterface module,
+            @Mocked final NanomsgCommunicationEndpoint controlEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -509,7 +504,7 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
 
                 controlEndpoint.connect();
@@ -550,8 +545,8 @@ public class ProxyGatewayTest {
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_016: [ *Message Listener task - Create message* - If connection to the message channel fails, it shall send an error message to the Gateway. ]
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_025: [ *Message Listener task - Data message* - It shall not check for messages, if the message channel is not available. ]
     @Test
-    public void attachShouldHandleCreateDataEndpointFail(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final MessageSerializer serializer)
+    public void attachShouldHandleCreateDataEndpointFail(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint, @Mocked final MessageSerializer serializer)
             throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -563,9 +558,9 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
-                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                new NanomsgCommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
                 result = dataEndpoint;
 
                 controlEndpoint.connect();
@@ -609,7 +604,7 @@ public class ProxyGatewayTest {
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_019: [ *Message Listener task - Create message* - If module instance creation fails, it shall send an error message to the Gateway. ]
     @Test
     public void attachShouldSendCreationErrorIfModuleInstantionFails(
-            @Mocked final CommunicationEndpoint controlEndpoint, @Mocked final CommunicationEndpoint dataEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint controlEndpoint, @Mocked final NanomsgCommunicationEndpoint dataEndpoint,
             @Mocked final TestModuleImplementsInterface module, @Mocked final MessageSerializer serializer)
             throws ConnectionException, MessageDeserializationException {
 
@@ -622,9 +617,9 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
-                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                new NanomsgCommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
                 result = dataEndpoint;
 
                 controlEndpoint.connect();
@@ -670,8 +665,8 @@ public class ProxyGatewayTest {
 
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_020: [ *Message Listener task - Create message* - If the Create message finished processing, it shall send an ok message to the Gateway. ]
     @Test
-    public void attachSuccessShouldSendSuccessMessage(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
+    public void attachSuccessShouldSendSuccessMessage(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -683,9 +678,9 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
-                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                new NanomsgCommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
                 result = dataEndpoint;
 
                 new TestModuleImplementsInterface();
@@ -739,8 +734,8 @@ public class ProxyGatewayTest {
     
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_021: [ *Message Listener task - Create message* - If ok message fails to be send to the Gateway, it shall do call module `destroy` and disconnect from message channel. ]
     @Test
-    public void attachShouldDestroyIfSuccessMessageSendFails(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
+    public void attachShouldDestroyIfSuccessMessageSendFails(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -752,9 +747,9 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
-                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                new NanomsgCommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
                 result = dataEndpoint;
 
                 new TestModuleImplementsInterface();
@@ -804,8 +799,8 @@ public class ProxyGatewayTest {
     
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_022: [ *Message Listener task - Start message* - If message type is START, it shall call module `start` method. ]
     @Test
-    public void attachShouldCallModuleStart(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module)
+    public void attachShouldCallModuleStart(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module)
             throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -817,9 +812,9 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
-                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                new NanomsgCommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
                 result = dataEndpoint;
 
                 new TestModuleImplementsInterface();
@@ -865,8 +860,8 @@ public class ProxyGatewayTest {
     }
 
     @Test
-    public void attachShouldIgnoreMessageIfStartMessageBeforeCreate(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint)
+    public void attachShouldIgnoreMessageIfStartMessageBeforeCreate(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint)
             throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -878,7 +873,7 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
                 controlEndpoint.receiveMessage();
                 returns(startMessage);
@@ -896,8 +891,8 @@ public class ProxyGatewayTest {
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_023: [ *Message Listener task - Destroy message* - If message type is DESTROY, it shall call module `destroy` method. ]
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_024: [ *Message Listener task - Destroy message* - If message type is DESTROY, it shall disconnect from the message channel. ]
     @Test
-    public void attachShouldCallModuleDestroyIfReceivesDestroyMessage(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module)
+    public void attachShouldCallModuleDestroyIfReceivesDestroyMessage(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module)
             throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -909,7 +904,7 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
                 controlEndpoint.receiveMessage();
                 returns(createMessage, destroyMessage);
@@ -917,7 +912,7 @@ public class ProxyGatewayTest {
                 controlEndpoint.sendMessageNoWait((byte[]) any);
                 result = true;
 
-                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                new NanomsgCommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
                 result = dataEndpoint;
                 dataEndpoint.receiveMessage();
                 result = null;
@@ -961,8 +956,8 @@ public class ProxyGatewayTest {
 
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_023: [ *Message Listener task - Destroy message* - If message type is DESTROY, it shall call module `destroy` method. ]
     @Test
-    public void attachShouldDestroyIfDestroyMessageBeforeCreate(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint)
+    public void attachShouldDestroyIfDestroyMessageBeforeCreate(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint)
             throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -974,7 +969,7 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
                 controlEndpoint.receiveMessage();
                 returns(destroyMessage);
@@ -992,8 +987,8 @@ public class ProxyGatewayTest {
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_027: [ *Message Listener task - Data message* - If no data message is received or if an error occurs, it shall do nothing. ]
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_026: [ *Message Listener task - Data message* - If data message is received, it shall forward it to the module by calling `receive` method. ]
     @Test
-    public void attachShouldReceiveDataMessage(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
+    public void attachShouldReceiveDataMessage(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -1005,9 +1000,9 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
-                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                new NanomsgCommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
                 result = dataEndpoint;
 
                 new TestModuleImplementsInterface();
@@ -1077,8 +1072,8 @@ public class ProxyGatewayTest {
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_033: [ It shall disconnect from the Gateway control channel. ]
     // Tests_SRS_JAVA_PROXY_GATEWAY_24_034: [ It shall disconnect from the Gateway message channel. ]
     @Test
-    public void detachSuccess(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
+    public void detachSuccess(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -1090,9 +1085,9 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
-                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                new NanomsgCommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
                 result = dataEndpoint;
 
                 new TestModuleImplementsInterface();
@@ -1156,8 +1151,8 @@ public class ProxyGatewayTest {
     }
 
     @Test
-    public void attachAfterDetachSuccess(@Mocked final CommunicationEndpoint controlEndpoint,
-            @Mocked final CommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
+    public void attachAfterDetachSuccess(@Mocked final NanomsgCommunicationEndpoint controlEndpoint,
+            @Mocked final NanomsgCommunicationEndpoint dataEndpoint, @Mocked final TestModuleImplementsInterface module,
             @Mocked final MessageSerializer serializer) throws ConnectionException, MessageDeserializationException {
 
         final ProxyGateway proxy = new ProxyGateway(config);
@@ -1169,9 +1164,9 @@ public class ProxyGatewayTest {
         };
         new Expectations() {
             {
-                new CommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
+                new NanomsgCommunicationEndpoint(config.getIdentifier(), (CommunicationControlStrategy) any);
                 result = controlEndpoint;
-                new CommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
+                new NanomsgCommunicationEndpoint(dataSocketId, (CommunicationDataStrategy) any);
                 result = dataEndpoint;
 
                 new TestModuleImplementsInterface();

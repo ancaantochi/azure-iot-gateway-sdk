@@ -19,10 +19,10 @@ class NanomsgLibrary {
         loadNativeLibrary();
 
         symbols = getSymbols();
-        NN_PAIR = symbols.get("NN_PAIR");
-        NN_DONTWAIT = symbols.get("NN_DONTWAIT");
-        EAGAIN = symbols.get("EAGAIN");
-        AF_SP = symbols.get("AF_SP");
+        NN_PAIR = symbols.get("NN_PAIR") != null ? symbols.get("NN_PAIR") : 16;
+        NN_DONTWAIT = symbols.get("NN_DONTWAIT") != null ? symbols.get("NN_DONTWAIT") : 1;
+        EAGAIN = symbols.get("EAGAIN") != null ? symbols.get("EAGAIN") : 11;
+        AF_SP = symbols.get("AF_SP") != null ? symbols.get("AF_SP") : 1;
     }
 
     static void loadNativeLibrary() {
@@ -89,7 +89,7 @@ class NanomsgLibrary {
         return true;
     }
 
-    public byte[] receiveMessageAsync(int socket) throws ConnectionException {
+    public byte[] receiveMessageNoWait(int socket) throws ConnectionException {
         byte[] messageBuffer = nn_recv(socket, NN_DONTWAIT);
 
         if (messageBuffer == null) {

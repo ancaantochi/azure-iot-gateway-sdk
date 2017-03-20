@@ -19,6 +19,7 @@ JNIEXPORT jstring JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
     if (error_msg == NULL || exception)
     {
         error_msg = "";
+        (*env)->ExceptionDescribe(env);
         (*env)->ExceptionClear(env);
     }
 
@@ -38,12 +39,7 @@ JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn
 JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1bind
 (JNIEnv *env, jobject obj, jint socket, jstring address) {
     const char *addr = (*env)->GetStringUTFChars(env, address, NULL);
-    
-    if (addr == NULL)
-    {
-        addr = 0;
-    }
-    
+   
     return nn_bind(socket, addr);
 }
 
@@ -55,17 +51,18 @@ JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn
 JNIEXPORT jint JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary_nn_1send
 (JNIEnv *env, jobject obj, jint socket, jbyteArray buffer, jint flags) {
     jint result = -1;
-    jsize length = (*env)->GetArrayLength(env, buffer);
-    
-    jbyte* cbuffer = (*env)->GetByteArrayElements(env, buffer, 0);
+    if (buffer != NULL) {
+        jsize length = (*env)->GetArrayLength(env, buffer);
+        jbyte* cbuffer = (*env)->GetByteArrayElements(env, buffer, 0);
         
-    if (cbuffer == NULL)
-    {
-        result = -1;
-    }
-    else {
-        result = nn_send(socket, cbuffer, length, flags);
-        (*env)->ReleaseByteArrayElements(env, buffer, cbuffer, JNI_ABORT);
+        if (cbuffer == NULL)
+        {
+            result = -1;
+        }
+        else {
+            result = nn_send(socket, cbuffer, length, flags);
+            (*env)->ReleaseByteArrayElements(env, buffer, cbuffer, JNI_ABORT);
+        }
     }
 
     return result;
@@ -78,7 +75,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibr
     void *buf = NULL;
     int nbytes = nn_recv(socket, &buf, NN_MSG, flags);
     jbyteArray result = 0;
-    if (nbytes < 0) {
+    if (nbytes <= 0) {
         result = 0;
     }
     else {
@@ -92,6 +89,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibr
             jthrowable exception = (*env)->ExceptionOccurred(env);
             if (exception) {
                 result = 0;
+                (*env)->ExceptionDescribe(env);
                 (*env)->ExceptionClear(env);
             }
         }
@@ -111,6 +109,7 @@ JNIEXPORT jobject JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
     if (jMap_class == NULL || exception)
     {
         result = NULL;
+        (*env)->ExceptionDescribe(env);
         (*env)->ExceptionClear(env);
     }
     else {
@@ -119,6 +118,7 @@ JNIEXPORT jobject JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
         if (jMap_init == NULL || exception)
         {
             result = NULL;
+            (*env)->ExceptionDescribe(env);
             (*env)->ExceptionClear(env);
         }
         else {
@@ -127,6 +127,7 @@ JNIEXPORT jobject JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
             if (jmap_object == NULL || exception)
             {
                 result = NULL;
+                (*env)->ExceptionDescribe(env);
                 (*env)->ExceptionClear(env);
             }
             else {
@@ -136,6 +137,7 @@ JNIEXPORT jobject JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
                 if (jmap_put == NULL || exception)
                 {
                     result = NULL;
+                    (*env)->ExceptionDescribe(env);
                     (*env)->ExceptionClear(env);
                 }
                 else {
@@ -144,6 +146,7 @@ JNIEXPORT jobject JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
                     if (jinteger_class == NULL || exception)
                     {
                         result = NULL;
+                        (*env)->ExceptionDescribe(env);
                         (*env)->ExceptionClear(env);
                     }
                     else {
@@ -152,6 +155,7 @@ JNIEXPORT jobject JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
                         if (jinteger_init == NULL || exception)
                         {
                             result = NULL;
+                            (*env)->ExceptionDescribe(env);
                             (*env)->ExceptionClear(env);
                         }
                         else {
@@ -164,7 +168,7 @@ JNIEXPORT jobject JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
                                 exception = (*env)->ExceptionOccurred(env);
                                 if (jkey == NULL || exception)
                                 {
-                                    result = NULL;
+                                    (*env)->ExceptionDescribe(env);
                                     (*env)->ExceptionClear(env);
                                 }
                                 else {
@@ -172,7 +176,7 @@ JNIEXPORT jobject JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
                                     exception = (*env)->ExceptionOccurred(env);
                                     if (jval == NULL || exception)
                                     {
-                                        result = NULL;
+                                        (*env)->ExceptionDescribe(env);
                                         (*env)->ExceptionClear(env);
                                     }
                                     else {
@@ -180,7 +184,7 @@ JNIEXPORT jobject JNICALL Java_com_microsoft_azure_gateway_remote_NanomsgLibrary
                                         exception = (*env)->ExceptionOccurred(env);
                                         if (exception)
                                         {
-                                            result = NULL;
+                                            (*env)->ExceptionDescribe(env);
                                             (*env)->ExceptionClear(env);
                                         }
                                     }

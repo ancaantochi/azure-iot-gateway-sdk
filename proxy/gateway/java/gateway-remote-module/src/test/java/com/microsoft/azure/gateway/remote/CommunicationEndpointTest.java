@@ -14,7 +14,6 @@ import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import mockit.Expectations;
 import mockit.Mock;
 import mockit.MockUp;
 import mockit.Mocked;
@@ -27,7 +26,6 @@ public class CommunicationEndpointTest {
     private static byte[] messageBuffer = new byte[] {};
     private static int endpointId = 1;
     private static int socket = 0;
-    private static MockUp<NanomsgLibrary> nanoMock;
     private final String identifier = "test";
 
     @Mocked
@@ -44,9 +42,9 @@ public class CommunicationEndpointTest {
             @Mock
             private Map<String, Integer> getSymbols() {
                 Map<String, Integer> map = new HashMap<String, Integer>();
-                map.put("NN_PAIR", 1);
+                map.put("NN_PAIR", 16);
                 map.put("NN_DONTWAIT", 1);
-                map.put("EAGAIN", 21);
+                map.put("EAGAIN", 11);
                 map.put("AF_SP", 1);
 
                 return map;
@@ -96,12 +94,12 @@ public class CommunicationEndpointTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void constructorShouldThrowIfNullIdentifier() {
-        new CommunicationEndpoint(null, strategy);
+        new NanomsgCommunicationEndpoint(null, strategy);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void constructorShouldThrowIfNullCommunicationStrategy() {
-        new CommunicationEndpoint(identifier, null);
+        new NanomsgCommunicationEndpoint(identifier, null);
     }
 
     @Test
@@ -109,7 +107,7 @@ public class CommunicationEndpointTest {
         socket = 0;
         endpointId = 1;
 
-        CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
+        CommunicationEndpoint endpoint = new NanomsgCommunicationEndpoint(identifier, strategy);
         endpoint.connect();
 
         new Verifications() {
@@ -126,7 +124,7 @@ public class CommunicationEndpointTest {
     public void connectShouldThrowIfSocketFails() throws ConnectionException {
         socket = -1;
 
-        CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
+        CommunicationEndpoint endpoint = new NanomsgCommunicationEndpoint(identifier, strategy);
         endpoint.connect();
     }
 
@@ -135,7 +133,7 @@ public class CommunicationEndpointTest {
         socket = 0;
         endpointId = -1;
 
-        CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
+        CommunicationEndpoint endpoint = new NanomsgCommunicationEndpoint(identifier, strategy);
         endpoint.connect();
     }
 
@@ -144,7 +142,7 @@ public class CommunicationEndpointTest {
         final String identifier = "test";
 
         messageBuffer = new byte[0];
-        CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
+        CommunicationEndpoint endpoint = new NanomsgCommunicationEndpoint(identifier, strategy);
         endpoint.receiveMessage();
 
         new Verifications() {
@@ -161,8 +159,8 @@ public class CommunicationEndpointTest {
         final String identifier = "test";
 
         messageBuffer = null;
-        errorNo = 21;
-        CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
+        errorNo = 11;
+        CommunicationEndpoint endpoint = new NanomsgCommunicationEndpoint(identifier, strategy);
         endpoint.receiveMessage();
     }
 
@@ -172,7 +170,7 @@ public class CommunicationEndpointTest {
 
         messageBuffer = null;
 
-        CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
+        CommunicationEndpoint endpoint = new NanomsgCommunicationEndpoint(identifier, strategy);
         endpoint.receiveMessage();
     }
 
@@ -182,7 +180,7 @@ public class CommunicationEndpointTest {
         socket = 0;
         endpointId = 1;
 
-        CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
+        CommunicationEndpoint endpoint = new NanomsgCommunicationEndpoint(identifier, strategy);
         endpoint.disconnect();
     }
 
@@ -192,7 +190,7 @@ public class CommunicationEndpointTest {
         messageBuffer = new byte[0];
         sentBytes = 0;
 
-        CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
+        CommunicationEndpoint endpoint = new NanomsgCommunicationEndpoint(identifier, strategy);
         endpoint.sendMessage(messageBuffer);
     }
 
@@ -202,7 +200,7 @@ public class CommunicationEndpointTest {
         messageBuffer = new byte[0];
         sentBytes = -1;
 
-        CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
+        CommunicationEndpoint endpoint = new NanomsgCommunicationEndpoint(identifier, strategy);
         endpoint.sendMessage(messageBuffer);
     }
 
@@ -212,7 +210,7 @@ public class CommunicationEndpointTest {
         messageBuffer = new byte[0];
         sentBytes = 0;
 
-        CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
+        CommunicationEndpoint endpoint = new NanomsgCommunicationEndpoint(identifier, strategy);
         boolean sent = endpoint.sendMessageNoWait(messageBuffer);
 
         assertTrue(sent);
@@ -223,9 +221,9 @@ public class CommunicationEndpointTest {
         final String identifier = "test";
         messageBuffer = new byte[0];
         sentBytes = -1;
-        errorNo = 21;
+        errorNo = 11;
 
-        CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
+        CommunicationEndpoint endpoint = new NanomsgCommunicationEndpoint(identifier, strategy);
         boolean sent = endpoint.sendMessageNoWait(messageBuffer);
         assertFalse(sent);
     }
@@ -238,7 +236,7 @@ public class CommunicationEndpointTest {
         sentBytes = -1;
         errorNo = 22;
 
-        CommunicationEndpoint endpoint = new CommunicationEndpoint(identifier, strategy);
+        CommunicationEndpoint endpoint = new NanomsgCommunicationEndpoint(identifier, strategy);
         endpoint.sendMessageNoWait(messageBuffer);
     }
 }

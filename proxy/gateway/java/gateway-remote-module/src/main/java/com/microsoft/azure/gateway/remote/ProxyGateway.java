@@ -156,7 +156,7 @@ public class ProxyGateway {
         public MessageListener(ModuleConfiguration config) throws ConnectionException {
             this.config = config;
             // Codes_SRS_JAVA_PROXY_GATEWAY_24_007: [ *Message Listener task* - It shall create a new control channel with the Gateway. ]
-            this.controlEndpoint = new CommunicationEndpoint(this.config.getIdentifier(),
+            this.controlEndpoint = new NanomsgCommunicationEndpoint(this.config.getIdentifier(),
                     new CommunicationControlStrategy());
             this.controlEndpoint.setVersion(this.config.getVersion());
             // Codes_SRS_JAVA_PROXY_GATEWAY_24_008: [ *Message Listener task* - It shall connect to the control channel. ]
@@ -366,7 +366,7 @@ public class ProxyGateway {
 
         private CommunicationEndpoint createDataEndpoints(DataEndpointConfig endpointConfig)
                 throws ConnectionException {
-            CommunicationEndpoint endpoint = new CommunicationEndpoint(endpointConfig.getId(),
+            CommunicationEndpoint endpoint = new NanomsgCommunicationEndpoint(endpointConfig.getId(),
                     new CommunicationDataStrategy(endpointConfig.getType()));
             endpoint.connect();
             return endpoint;
